@@ -27,8 +27,10 @@ map<pair<int, int>, string> move(map<pair<int, int>, string> board) {
   while (start) {
     int startX, startY;
     int endX, endY;
+    cout << "Choose Initial Coordinates"
     cin >> startX;
     cin >> startY;
+    cout << "Choose Final Coordinates"
     cin >> endX;
     cin >> endY;
     start = check(board[make_pair(startX, startY)], board);
@@ -61,6 +63,7 @@ int main() {
       cout << '\n';
     }
   }
+
   while (1) {
     board = move(board);
     for (itr = board.begin(); itr != board.end(); ++itr) {
