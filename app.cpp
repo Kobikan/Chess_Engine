@@ -17,15 +17,24 @@ queue<string> setup() {
   return pieces;
 }
 
+int check(string piece, map<pair<int, int>, string> board) {
+  int state = 1;
+  return state;
+}
+
 map<pair<int, int>, string> move(map<pair<int, int>, string> board) {
-  int startX, startY;
-  int endX, endY;
-  cin >> startX;
-  cin >> startY;
-  cin >> endX;
-  cin >> endY;
-  board[make_pair(endX, endY)] = board[make_pair(startX, startY)];
-  board[make_pair(startX, startY)] = "[]    ";
+  int start = 1;
+  while (start) {
+    int startX, startY;
+    int endX, endY;
+    cin >> startX;
+    cin >> startY;
+    cin >> endX;
+    cin >> endY;
+    start = check(board[make_pair(startX, startY)], board);
+    board[make_pair(endX, endY)] = board[make_pair(startX, startY)];
+    board[make_pair(startX, startY)] = "[]    ";
+  }
   return board;
 }
 
