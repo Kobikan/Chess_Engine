@@ -8,8 +8,8 @@ using namespace std;
 
 queue<string> setup() {
   queue<string> pieces;
-  string high[] = {"rook", "knight", "bishop", "queen",
-                   "king", "bishop", "knight", "rook"};
+  string high[] = {"rook  ", "knight", "bishop", "queen ",
+                   "king  ", "bishop", "knight", "rook  "};
 
   for (string &i : high) {
     pieces.push(i);
@@ -17,35 +17,38 @@ queue<string> setup() {
   return pieces;
 }
 
-map<int, string> move(map<int, string> board) {
-  int start;
-  int end;
-  cin >> start;
-  cin >> end;
-  board[end] = board[start];
-  board[start] = "[]";
+map<pair<int, int>, string> move(map<pair<int, int>, string> board) {
+  int startX, startY;
+  int endX, endY;
+  cin >> startX;
+  cin >> startY;
+  cin >> endX;
+  cin >> endY;
+  board[make_pair(endX, endY)] = board[make_pair(startX, startY)];
+  board[make_pair(startX, startY)] = "[]    ";
   return board;
 }
 
 int main() {
   queue<string> pieces = setup();
-  map<int, string> board;
+  map<pair<int, int>, string> board;
   for (int i = 1; i <= 64; i++) {
+    pair<int, int> pos(i / 8, i % 8);
     if (i <= 8 || i >= 57) {
       pieces.push(pieces.front());
-      board.insert(pair<int, string>(i, pieces.front()));
+      board[pos] = pieces.front();
       pieces.pop();
     } else if (i <= 16 || (i >= 49 && i <= 56)) {
-      board.insert(pair<int, string>(i, "pawn"));
+      board[pos] = "pawn  ";
     } else {
-      board.insert(pair<int, string>(i, "[]"));
+      board[pos] = "[]    ";
     }
   }
 
-  map<int, string>::iterator itr;
+  map<pair<int, int>, string>::iterator itr;
   for (itr = board.begin(); itr != board.end(); ++itr) {
-    cout << itr->second << ' ';
-    if (itr->first % 8 == 0) {
+    cout << itr->second << " ";
+    if (itr->first.second % 8 == 0) {
       cout << '\n';
     }
   }
@@ -53,7 +56,7 @@ int main() {
     board = move(board);
     for (itr = board.begin(); itr != board.end(); ++itr) {
       cout << itr->second << ' ';
-      if (itr->first % 8 == 0) {
+      if (itr->first.second % 8 == 0) {
         cout << '\n';
       }
     }
