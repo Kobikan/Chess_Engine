@@ -1,10 +1,12 @@
 #include "Piece.h"
+#include "User.h"
 #include <cstdlib>
 #include <iostream>
 #include <iterator>
 #include <map>
 #include <queue>
 #include <string>
+
 // Purely for terminal Remove once Opencl is integrated
 #include <windows.h>
 using namespace std;
@@ -14,6 +16,7 @@ enum rookDirection { North, East, West, South } rookDir;
 enum bishopDirection { NorthEast, NorthWest, SouthEast, SouthWest } bishopDir;
 enum check { Null, Check, CheckMate } checkState;
 
+User currentUser;
 // Setup for queue used for chess placement intiation
 queue<string> setup() {
   queue<string> pieces;
@@ -100,8 +103,13 @@ int check(string piece, map<pair<int, int>, Piece> board, pair<int, int> start,
   cout << start.first << '\n';
   cout << end.first << '\n';
   if (piece.compare("pawn  ") == 0) {
-    state =
-        (start.second == end.second && start.first + 1 == end.first) ? 0 : 1;
+    if (currentUser.getSide() == 1) {
+      state =
+          (start.second == end.second && start.first + 1 == end.first) ? 0 : 1;
+    } else {
+      state =
+          (start.second == end.second && start.first - 1 == end.first) ? 0 : 1;
+    }
   } else if (piece.compare("rook  ") == 0) {
     cout << piece << '\n';
     state = (start.second == end.second && start.first != end.first ||
@@ -175,7 +183,8 @@ map<pair<int, int>, Piece> move(map<pair<int, int>, Piece> board) {
     endPosition = make_pair(endY, endX);
     cout << startX - endX << '\n';
     cout << startY - endY << '\n';
-    if (board[endPosition].getSide() != board[startPosition].getSide()) {
+    if (board[endPosition].getSide() != board[startPosition].getSide() &&
+        currentUser.getSide() == board[startPosition].getSide()) {
       valid = check(board[startPosition].getPiece(), board, startPosition,
                     endPosition);
     }
@@ -189,6 +198,8 @@ map<pair<int, int>, Piece> move(map<pair<int, int>, Piece> board) {
 
 int main() {
   HANDLE consoleTextColor;
+  User user1("white", 1);
+  User user2("black", 2);
   consoleTextColor = GetStdHandle(STD_OUTPUT_HANDLE);
 
   queue<string> pieces = setup();
@@ -240,6 +251,7 @@ int main() {
   while (checkState != CheckMate) {
     int color = 15;
     SetConsoleTextAttribute(consoleTextColor, color);
+    currentUser = currentUser.getSide() == user1.getSide() ? user2 : user1;
     board = move(board);
     for (int i = 0; i <= 7; i++) {
       for (int j = 0; j <= 7; j++) {
