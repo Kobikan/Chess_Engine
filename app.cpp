@@ -5,11 +5,15 @@
 #include <map>
 #include <queue>
 #include <string>
+// Purely for terminal Remove once Opencl is integrated
+#include <windows.h>
 using namespace std;
 
+// ENUMs for Traversal of rook and bishop
 enum rookDirection { North, East, West, South } rookDir;
 enum bishopDirection { NorthEast, NorthWest, SouthEast, SouthWest } bishopDir;
 
+// Setup for queue used for chess placement intiation
 queue<string> setup() {
   queue<string> pieces;
   string high[] = {"rook  ", "knight", "bishop", "queen ",
@@ -21,12 +25,11 @@ queue<string> setup() {
   return pieces;
 }
 
+// Checks if the traversal is blocked
 bool checkIfBlocked(string piece, map<pair<int, int>, Piece> board,
                     pair<int, int> start, pair<int, int> end) {
   bool blocked = false;
-  if (piece.compare("pawn  ") == 0 || piece.compare("knight") == 0) {
-    blocked = board[end].getPiece().compare("[]    ") != 0 ? true : false;
-  } else if (piece.compare("rook  ") == 0) {
+  if (piece.compare("rook  ") == 0) {
     int xTraversal, yTraversal, rookTraversal;
     pair<int, int> position = start;
 
@@ -34,26 +37,18 @@ bool checkIfBlocked(string piece, map<pair<int, int>, Piece> board,
     xTraversal = start.second - end.second;
     rookDir = xTraversal == 0 ? yTraversal > 0 ? North : South
                               : xTraversal > 0 ? West : East;
-    rookTraversal = xTraversal == 0 ? yTraversal : xTraversal;
-    while (rookTraversal != 0) {
-      cout << rookTraversal << '\n';
-      cout << rookDir << '\n';
-
+    rookTraversal = abs(xTraversal == 0 ? yTraversal : xTraversal);
+    while (rookTraversal != 1) {
       if (rookDir == North) {
         position = make_pair(position.first - 1, position.second);
-        rookTraversal--;
-
       } else if (rookDir == East) {
         position = make_pair(position.first, position.second + 1);
-        rookTraversal--;
       } else if (rookDir == South) {
         position = make_pair(position.first + 1, position.second);
-        rookTraversal++;
-
       } else if (rookDir == West) {
         position = make_pair(position.first, position.second - 1);
-        rookTraversal++;
       }
+      rookTraversal--;
       cout << position.first << '\n';
       cout << board[position].getPiece().compare("[]    ") << '\n';
 
@@ -61,12 +56,41 @@ bool checkIfBlocked(string piece, map<pair<int, int>, Piece> board,
           board[position].getPiece().compare("[]    ") != 0 ? true : false;
     }
   } else if (piece.compare("bishop") == 0) {
+    int xTraversal, yTraversal, bishopTraversal;
+    pair<int, int> position = start;
+
+    yTraversal = start.first - end.first;
+    xTraversal = start.second - end.second;
+    bishopDir = yTraversal > 0 ? xTraversal > 0 ? NorthEast : NorthWest
+                               : xTraversal > 0 ? SouthEast : SouthWest;
+    bishopTraversal = abs(xTraversal);
+    while (bishopTraversal != 1) {
+      cout << "Traversal" << bishopTraversal << '\n';
+      cout << bishopDir << '\n';
+      if (bishopDir == NorthEast) {
+        position = make_pair(position.first + 1, position.second + 1);
+      } else if (bishopDir == NorthWest) {
+        position = make_pair(position.first + 1, position.second - 1);
+      } else if (bishopDir == SouthEast) {
+        position = make_pair(position.first - 1, position.second + 1);
+      } else if (bishopDir == SouthWest) {
+        position = make_pair(position.first - 1, position.second - 1);
+      }
+      bishopTraversal--;
+      cout << position.first << '\n';
+      cout << board[position].getPiece().compare("[]    ") << '\n';
+
+      blocked =
+          board[position].getPiece().compare("[]    ") != 0 ? true : false;
+    }
   } else if (piece.compare("queen") == 0) {
-  } else if (piece.compare("king") == 0) {
+    blocked = checkIfBlocked("rook  ", board, start, end) ||
+              checkIfBlocked("bishop", board, start, end);
   }
   return blocked;
 }
 
+// Checks if the move made id applicable for the piece
 int check(string piece, map<pair<int, int>, Piece> board, pair<int, int> start,
           pair<int, int> end) {
   int state = 1;
@@ -76,7 +100,7 @@ int check(string piece, map<pair<int, int>, Piece> board, pair<int, int> start,
   cout << end.first << '\n';
   if (piece.compare("pawn  ") == 0) {
     state =
-        (start.second + 1 == end.second && start.first == end.first) ? 0 : 1;
+        (start.second == end.second && start.first + 1 == end.first) ? 0 : 1;
   } else if (piece.compare("rook  ") == 0) {
     cout << piece << '\n';
     state = (start.second == end.second && start.first != end.first ||
@@ -100,8 +124,8 @@ int check(string piece, map<pair<int, int>, Piece> board, pair<int, int> start,
     state = (abs(start.second - end.second) == abs(start.first - end.first))
                 ? 0
                 : 1;
-  } else if (piece.compare("queen") == 0) {
-    state = check("rook", board, start, end) == 0 ||
+  } else if (piece.compare("queen ") == 0) {
+    state = check("rook  ", board, start, end) == 0 ||
                     check("bishop", board, start, end) == 0
                 ? 0
                 : 1;
@@ -127,6 +151,7 @@ int check(string piece, map<pair<int, int>, Piece> board, pair<int, int> start,
   return state;
 }
 
+// Moves the piece
 map<pair<int, int>, Piece> move(map<pair<int, int>, Piece> board) {
   int valid = 1;
   int startX, startY;
@@ -149,18 +174,23 @@ map<pair<int, int>, Piece> move(map<pair<int, int>, Piece> board) {
     endPosition = make_pair(endY, endX);
     cout << startX - endX << '\n';
     cout << startY - endY << '\n';
-
-    valid = check(board[startPosition].getPiece(), board, startPosition,
-                  endPosition);
+    if (board[endPosition].getSide() != board[startPosition].getSide())
+      valid = check(board[startPosition].getPiece(), board, startPosition,
+                    endPosition);
   }
   board[endPosition] = board[startPosition];
-  Piece test1("[]    ", 0);
+  Piece test1("[]    ", 3);
   board[startPosition] = test1;
   return board;
 }
 
 int main() {
+  HANDLE consoleTextColor;
+  consoleTextColor = GetStdHandle(STD_OUTPUT_HANDLE);
+
   queue<string> pieces = setup();
+  // Because the way Map works it automatically maps based on the First number
+  // hence the position is based Y and X rather than X and Y
   map<pair<int, int>, Piece> board;
 
   for (int i = 0; i <= 63; i++) {
@@ -182,7 +212,7 @@ int main() {
       Piece test1("pawn  ", 2);
       board[pos] = test1;
     } else {
-      Piece test1("[]    ", 0);
+      Piece test1("[]    ", 3);
       board[pos] = test1;
     }
   }
@@ -197,15 +227,21 @@ int main() {
 
   for (int i = 0; i <= 7; i++) {
     for (int j = 0; j <= 7; j++) {
+      int color = board[make_pair(i, j)].getSide();
+      SetConsoleTextAttribute(consoleTextColor, color);
       cout << board[make_pair(i, j)].getPiece() << " ";
     }
     cout << '\n';
   }
 
   while (1) {
+    int color = 15;
+    SetConsoleTextAttribute(consoleTextColor, color);
     board = move(board);
     for (int i = 0; i <= 7; i++) {
       for (int j = 0; j <= 7; j++) {
+        color = board[make_pair(i, j)].getSide();
+        SetConsoleTextAttribute(consoleTextColor, color);
         cout << board[make_pair(i, j)].getPiece() << " ";
       }
       cout << '\n';

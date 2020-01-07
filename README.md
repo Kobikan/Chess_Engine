@@ -1,5 +1,5 @@
 # Chess_Engine
-Please run `clang-format -i *.cpp` in terminal before pushing
+Please run `clang-format -i *.cpp *.h` in terminal before pushing
 
 How to Run:
 Open your terminal and run the following in the directory:

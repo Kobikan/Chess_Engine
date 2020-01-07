@@ -6,13 +6,14 @@
 #include <string>
 using namespace std;
 
-class Piece{
+class Piece {
 public:
   Piece();
   Piece(string, int);
 
   string getPiece() const;
   int getSide() const;
+
 private:
   string type;
   int side;
