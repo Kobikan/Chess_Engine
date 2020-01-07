@@ -12,6 +12,7 @@ using namespace std;
 // ENUMs for Traversal of rook and bishop
 enum rookDirection { North, East, West, South } rookDir;
 enum bishopDirection { NorthEast, NorthWest, SouthEast, SouthWest } bishopDir;
+enum check { Null, Check, CheckMate } checkState;
 
 // Setup for queue used for chess placement intiation
 queue<string> setup() {
@@ -174,13 +175,15 @@ map<pair<int, int>, Piece> move(map<pair<int, int>, Piece> board) {
     endPosition = make_pair(endY, endX);
     cout << startX - endX << '\n';
     cout << startY - endY << '\n';
-    if (board[endPosition].getSide() != board[startPosition].getSide())
+    if (board[endPosition].getSide() != board[startPosition].getSide()) {
       valid = check(board[startPosition].getPiece(), board, startPosition,
                     endPosition);
+    }
   }
+  checkState = board[endPosition].getPiece() == "king  " ? CheckMate : Null;
   board[endPosition] = board[startPosition];
-  Piece test1("[]    ", 3);
-  board[startPosition] = test1;
+  Piece empty("[]    ", 3);
+  board[startPosition] = empty;
   return board;
 }
 
@@ -234,7 +237,7 @@ int main() {
     cout << '\n';
   }
 
-  while (1) {
+  while (checkState != CheckMate) {
     int color = 15;
     SetConsoleTextAttribute(consoleTextColor, color);
     board = move(board);
