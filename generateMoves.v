@@ -4,157 +4,125 @@ module generateMoves(
 	reset,
 	enable,
 	player,
-	pieceLocation,
-	piece,
-	pawnMoves,
-	rookMoves,
-	knightMoves,
-	bishopMoves,
-	queenMoves,
-	kingMoves
+	locationVectorWhite,
+	locationVectorBlack,
+	aliveVectorWhite,
+	aliveVectorBlack,
+	moveSet
 );
 input clock;
 input reset;
 input enable;
 input player;
-input pieceLocation;
-
-output piece;
-output pawnMoves;
-output rookMoves;
-output knightMoves;
-output bishopMoves;
-output queenMoves;
-output kingMoves;
+input [95: 0]locationVectorWhite;
+input [95: 0]locationVectorBlack;
+input [15: 0]aliveVectorWhite;
+input [15: 0]aliveVectorBlack;
+output reg [112: 0]moveSet;
 
 wire clock;
 wire reset;
 wire enable;
-reg [11:0]pawnMoves;
-reg [11:0]rookMoves;
-reg [11:0]knightMoves;
-reg [11:0]bishopMoves;
+
+reg [31:0]pawnMoves;
+reg [3:0] pawn;
+reg [23:0]rookMoves;
+reg [5:0]knightMoves;
+reg [23:0]bishopMoves;
 reg [23:0]queenMoves;
-reg [11:0]kingMoves;
+reg [2:0]kingMoves;
 
-reg[3:0] board [7:0][7:0];
+wire [95: 0] tempLVW, tempLVB;
+wire [15: 0] tempAVW, tempAVB;
 
-integer i, j, k;
+reg[5:0] board [7:0][7:0]; // Occupied, Black or White, Piece ID
+	parameter BLACK = 1'b0;
+	parameter WHITE = 1'b1;
+	parameter P1 = 4'b1111;
+	parameter P2 = 4'b1110;
+	parameter P3 = 4'b1101;
+	parameter P4 = 4'b1100;
+	parameter P5 = 4'b1011;
+	parameter P6 = 4'b1010;
+	parameter P7 = 4'b1001;
+	parameter P8 = 4'b1000;
+	parameter R1 = 4'b0111;
+	parameter R2 = 4'b0110;
+	parameter N1 = 4'b0101;
+	parameter N2 = 4'b0100;
+	parameter B1 = 4'b0011;
+	parameter B2 = 4'b0010;
+	parameter Q1 = 4'b0001;
+	parameter K1 = 4'b0000;
+	parameter occupied = 1'b1;
+	parameter empty = 1'b0;
+	
+integer i, j, k, local_p;
 
-localparam PIECE_NONE 	= 4'b0000;
-
-// White
-localparam PIECE_PAWN	= 4'b0001;
-localparam PIECE_ROOK	= 4'b0010;
-localparam PIECE_KNIGHT	= 4'b0011;
-localparam PIECE_BISHOP	= 4'b0100;
-localparam PIECE_QUEEN	= 4'b0101;
-localparam PIECE_KING	= 4'b0110;
-
-//Black
-localparam BPIECE_PAWN	= 4'b1001;
-localparam BPIECE_ROOK	= 4'b1010;
-localparam BPIECE_KNIGHT= 4'b1011;
-localparam BPIECE_BISHOP= 4'b1100;
-localparam BPIECE_QUEEN	= 4'b1101;
-localparam BPIECE_KING	= 4'b1110;
-
-  check pawnGet(
-    .piece   (PIECE_PAWN)
-	 .moveSet (pawnMoves)
-	 
-  );
-    check rookGet(
-    .piece   (PIECE_ROOK)
-	 .moveSet (rookMoves)
-
-  );
-    check knightGet(
-    .piece   (PIECE_KNIGHT)
-	 .moveSet (knightMoves)
-
-  );
-    check bishopGet(
-    .piece   (PIECE_BISHOP)
-	 .moveSet (bishopMoves)
-
-  );
-    check kingGet(
-    .piece   (PIECE_KING)
-	 .moveSet (kingMoves)
-
-  );
-
-
+	assign tempLVB = locationVectorBlack;
+	assign tempLVW = locationVectorWhite;
+	assign tempAVB = aliveVectorBlack;
+	assign tempAVW = aliveVectorWhite;
+	
 always @(posedge clock)
 	begin
+	if(player) 
+		local_p = 1;
+	else 
+		local_p = -1;
 	// Board Initializing logic
-		for(i=0; i< 8; i = i+ 1) begin
-			for(j=0; j< 8; j = j+ 1) begin
-				if(reset == 1) begin
-					if(i == 1) begin
-						board[i][j] <= PIECE_PAWN;
-						
-					end else if(i == 6) begin
-						board[i][j] <= BPIECE_PAWN;
-						
-					end else if(i == 0) begin
-					
-						if(j == 0 || j == 7)begin 
-							board[i][j] <= PIECE_ROOK;
-						end else if(j == 1 || j == 6) begin
-							board[i][j] <= PIECE_KNIGHT;
-						end else if(j == 2 || j == 5) begin
-							board[i][j] <= PIECE_BISHOP;
-						end else if(j == 3) begin
-							board[i][j] <= PIECE_QUEEN;
-						end else if(j == 4) begin
-							board[i][j] <= PIECE_KING;
-						end
-						
-					end else if(i == 7) begin
-						if(j == 0 || j == 7)begin 
-							board[i][j] <= BPIECE_ROOK;
-						end else if(j == 1 || j == 6) begin
-							board[i][j] <= BPIECE_KNIGHT;
-						end else if(j == 2 || j == 5) begin
-							board[i][j] <= BPIECE_BISHOP;
-						end else if(j == 3) begin
-							board[i][j] <= BPIECE_QUEEN;
-						end else if(j == 4) begin
-							board[i][j] <= BPIECE_KING;
-						end
-						
-					end 
-				end else begin
-					// Add Logic Depending on how values are sent in
-				end
-			end
-		end
 	
-	// Find all possible pieces move possibilities
-		
-		
-	// Generate possible moves
-	for(i=0; i< 8; i = i+ 1) begin
-		for(j=0; j< 8; j = j+ 1) begin
-			if(board[i][j] != PIECE_NONE) begin
-				if(board[i][j][3] == player) begin
-					if(board[i][j] == PIECE_PAWN)begin
-						if (player == 0)begin 
-							
-						end else begin
-						end
-					end else if(board[i][j] == PIECE_ROOK) begin
-					end else if(board[i][j] == PIECE_KNIGHT) begin
-					end else if(board[i][j] == PIECE_BISHOP) begin
-					end else if(board[i][j] == PIECE_QUEEN) begin
-					end else if(board[i][j] == PIECE_KING) begin
+	
+	//Board Game Logic
+	// White= 1; Black =0
+		for(i = 0; i <= 47; i = i+6) begin
+			if(local_p == 1) begin
+				if(tempAVW[i/6]) begin
+					if((board[tempLVW[i+: 3]+ local_p][tempLVW[i+3 +: 3]] && 6'b100000) == 6'b000000) begin
+						pawn[3] <= 1'b1;
+						if(((board[tempLVW[i +: 3] +(local_p * 2)][tempLVW[i+3 +: 3]] && 6'b100000) == 6'b000000 )&& (tempLVW[i +: 3] == 3'b001)) 
+							pawn[2] <= 1'b1;
+						else 
+							pawn[2] <= 1'b0;
 					end
-				end
+					else 
+						pawn[3:2] <= 2'b00;
+					// Upper Left occupied 
+					if(((board[tempLVW[i +: 3]+ local_p][tempLVW[i+3 +: 3] -1] && 6'b110_000) == 6'b100_000) ) 
+						pawn[1] <= 1'b1;
+					else
+						pawn[1] <= 1'b0;
+					if(((board[tempLVW[i +: 3]+ local_p][tempLVW[i+3 +: 3] +1] && 6'b110_000) == 6'b100_000) ) 
+						pawn[0] <= 1'b1;
+					else
+						pawn[0] <= 1'b0;
+				end 
 			end
-		end
-	end
-	
+			else begin
+				if(tempAVB[i/6]) begin
+					if((board[tempLVB[i +: 3]+ local_p][tempLVB[i+3 +: 3]] && 6'b100000) == 6'b000000) begin
+						pawn[3] <= 1'b1;
+						if(((board[tempLVB[i +: 3] +(local_p * 2)][tempLVB[i+3 +: 3]] && 6'b100000) == 6'b000000 )&& (tempLVB[i +: 3] == 3'b001)) 
+							pawn[2] <= 1'b1;
+						else 
+							pawn[2] <= 1'b0;
+					end
+					else 
+						pawn[3:2] <= 2'b00;
+					// Upper Left occupied 
+					if(((board[tempLVB[i +: 3]+ local_p][tempLVB[i+3 +: 3] -1] && 6'b110_000) == 6'b110_000) ) 
+						pawn[1] <= 1'b1;
+					else
+						pawn[1] <= 1'b0;
+					if(((board[tempLVB[i +: 3]+ local_p][tempLVB[i+3 +: 3] +1] && 6'b110_000) == 6'b110_000) ) 
+						pawn[0] <= 1'b1;
+					else
+						pawn[0] <= 1'b0;
+				end 
+			end
+			moveSet[((i+6)*2)/3 -1 +: 4] = pawn;
+			pawn <= 4'b0000;
+    end
+			
 	end 
 endmodule
