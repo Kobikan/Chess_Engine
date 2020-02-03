@@ -41,10 +41,10 @@ module generateMoves(clock,
     
     initial begin
         pawn   = 1'h0;
-        rook   = 12'h000;
+        rook   = 3'h000;
         knight = 2'h00;
-        bishop = 12'h000;
-		  queen  = 23'h000000;
+        bishop = 3'h000;
+		  queen  = 6'h000000;
         king   = 2'h00;
     end
     
@@ -510,7 +510,7 @@ module generateMoves(clock,
             bishop_flag <= 1;
         end // Alive Vector End
     end
-    moveSet[54 - (bishopCounter*12) -: 12] <= bishop;
+    moveSet[55 - (bishopCounter*12) -: 12] <= bishop;
     bishop                                 <= 12'b0000_0000_0000;
     bishopCounter                          <= bishopCounter + 1;
     end
@@ -756,9 +756,8 @@ module generateMoves(clock,
 					queen_flag <= 1;
         end // Alive Vector End
     end
-    moveSet[54 - (queenCounter*12) -: 12] <= queen;
-    queen                                 <= 12'b0000_0000_0000;
-    queenCounter                          <= queenCounter + 1;
+    moveSet[31 -: 24] <= queen;
+    queen             <= 6'h000000;
     end
 	 
 	 
