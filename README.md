@@ -1,1 +1,0 @@
-verilog-format.exe --format <File Name> Note There are some bugs such as != being formatted to ! =
