@@ -6,7 +6,9 @@ module generateMoves(clock,
                      locationVectorBlack,
                      aliveVectorWhite,
                      aliveVectorBlack,
-                     moveSet);
+                     moveSet,
+							intdebug,
+							bitdebug);
     input clock;
     input reset;
     input enable;
@@ -16,7 +18,9 @@ module generateMoves(clock,
     input [15: 0]aliveVectorWhite;
     input [15: 0]aliveVectorBlack;
     output reg [127: 0]moveSet;
-    
+	 output reg [127: 0]bitdebug;
+    output integer intdebug;
+
     wire clock;
     wire reset;
     wire enable;
@@ -46,6 +50,9 @@ module generateMoves(clock,
         bishop = 3'h000;
 		  queen  = 6'h000000;
         king   = 2'h00;
+		  bitdebug = 32'h00000000000000000000000000000000;
+		  moveSet = 32'h00000000000000000000000000000000;
+		  intdebug = 0;
     end
     
     assign tempLVB = locationVectorBlack;
@@ -60,82 +67,78 @@ module generateMoves(clock,
         else
             local_p = -1;
 			// Board Initializing logic
-			for(i = 7; i > 0; i = i-1) begin
-				for(j = 7; j > 0; j = j-1) begin
+			for(i = 7; i >= 0; i = i-1) begin
+				for(j = 7; j >= 0; j = j-1) begin
 					board[i][j] = 6'b000000;
 				end
 			end
 			for(i = 95; i > 0; i = i-6) begin
 				if (tempAVW[i/6]) begin
-					board[tempLVW[i-: 3]][tempLVW[i-3 -: 3]] = WHITE[i -: 6];
+					board[tempLVW[i -: 3]][tempLVW[(i-3) -: 3]] = WHITE[i -:6];
 				end
 				if (tempAVB[i/6]) begin
-					board[tempLVB[i-: 3]][tempLVB[i-3 -: 3]] = BLACK[i -: 6];
+					board[tempLVB[i -: 3]][tempLVB[(i-3) -: 3]] = BLACK[i -: 6];
 				end
 			end
-        
+
+
         //Board Game Logic
         // White = 1; Black = 0
-        pawnCounter <= 0;
+        pawnCounter = 0;
         for(i = 95; i > 47; i = i-6) begin
             if (local_p == 1) begin
                 if (tempAVW[i/6]) begin
-                    if ((board[tempLVW[i-: 3]+ local_p][tempLVW[i-3 -: 3]] && 6'b100000) == 6'b000000) begin
-                        pawn[3] <= 1'b1;
-                        if (((board[tempLVW[i -: 3] +(local_p * 2)][tempLVW[i-3 -: 3]] && 6'b100000) == 6'b000000)&& (tempLVW[i -: 3] == 3'b001))
-                            pawn[2] <= 1'b1;
-                        else
-                            pawn[2] <= 1'b0;
-                    end
-                    else
-                        pawn[3:2] <= 2'b00;
-                        // Upper Left occupied
-                        if (tempLVW[i-3 -: 3] -1 >= 0) begin
-                            if ((board[tempLVW[i -: 3]+ local_p][tempLVW[i-3 -: 3] -1] && 6'b110_000) == 6'b110_000)
-                                pawn[1] <= 1'b1;
-                            else
-                                pawn[1] <= 1'b0;
-                        end
-                    
-                    if (tempLVW[i-3 -: 3] +1 < 8) begin
-                        if ((board[tempLVW[i -: 3]+ local_p][tempLVW[i-3 -: 3] +1] && 6'b110_000) == 6'b110_000)
-                            pawn[0] <= 1'b1;
-                        else
-                            pawn[0] <= 1'b0;
-                    end
-                end
+					     if (tempLVW[i -: 3] < 7) begin
+							  if ((board[tempLVW[i-: 3]+ local_p][tempLVW[i-3 -: 3]] & 6'b100000) == 6'b000000) begin
+									pawn[3] = 1'b1;
+									if (tempLVW[i -: 3] < 6) begin
+										if (((board[tempLVW[i -: 3] +(local_p * 2)][tempLVW[i-3 -: 3]] & 6'b100000) == 6'b000000) && (tempLVW[i -: 3] == 3'b001))
+											 pawn[2] = 1'b1;
+									end
+							  end
+						  
+							  // Upper Left occupied
+							  if (tempLVW[i-3 -: 3] > 0) begin
+									if ((board[tempLVW[i -: 3]+ local_p][tempLVW[i-3 -: 3] - 1'b1] & 6'b110000) == 6'b100000) begin
+										pawn[1] = 1'b1;
+									end
+							  end
+							  
+							  if (tempLVW[i-3 -: 3] < 7) begin
+									if ((board[tempLVW[i -: 3]+ local_p][tempLVW[i-3 -: 3] +1] & 6'b110000) == 6'b100000)
+										pawn[0] = 1'b1;
+							  end
+						  end
+					 end
             end
-            else begin
-                if (tempAVB[i/6]) begin
-                    if ((board[tempLVB[i -: 3]+ local_p][tempLVB[i-3 -: 3]] && 6'b100000) == 6'b000000) begin
-                        pawn[3] <= 1'b1;
-                        if (((board[tempLVB[i -: 3] +(local_p * 2)][tempLVB[i-3 -: 3]] && 6'b100000) == 6'b000000)&& (tempLVB[i -: 3] == 3'b001))
-                            pawn[2] <= 1'b1;
-                        else
-                            pawn[2] <= 1'b0;
-                    end
-                    else
-                        pawn[3:2] <= 2'b00;
-                    
-                    // Upper Left occupied
-                    if (tempLVB[i-3 -: 3] -1 >= 0) begin
-                        if ((board[tempLVB[i -: 3]+ local_p][tempLVB[i-3 -: 3] -1] && 6'b110_000) == 6'b110_000)
-                            pawn[1] <= 1'b1;
-                        else
-                            pawn[1] <= 1'b0;
-                    end
-                    
-                    if (tempLVB[i-3 -: 3] +1 < 8) begin
-                        if ((board[tempLVB[i -: 3]+ local_p][tempLVB[i-3 -: 3] +1] && 6'b110_000) == 6'b110_000)
-                            pawn[0] <= 1'b1;
-                        else
-                            pawn[0] <= 1'b0;
-                    end
-                end
-            end
+            else begin			
+					 if (tempAVB[i/6]) begin
+						  if (tempLVB[i -: 3] > 0) begin
+							  if ((board[tempLVB[i-: 3]+ local_p][tempLVB[i-3 -: 3]] & 6'b100000) == 6'b000000) begin
+									pawn[3] = 1'b1;
+									if (tempLVB[i -: 3] >1) begin
+										if (((board[tempLVB[i -: 3] + (local_p * 2)][tempLVB[i-3 -: 3]] & 6'b100000) == 6'b000000) && (tempLVB[i -: 3] == 3'b110))
+											 pawn[2] = 1'b1;
+									end
+							  end
+						  
+							  // Upper Left from Black occupied
+							  if (tempLVB[i-3 -: 3] < 7) begin
+									if ((board[tempLVB[i -: 3]+ local_p][tempLVB[i-3 -: 3] + 1'b1] & 6'b110000) == 6'b110000) begin
+										pawn[1] = 1'b1;
+									end
+							  end
+							  
+							  if (tempLVB[i-3 -: 3] > 0) begin
+									if ((board[tempLVB[i -: 3]+ local_p][tempLVB[i-3 -: 3] - 1'b1] & 6'b110000) == 6'b110000)
+										pawn[0] = 1'b1;
+							  end
+						  end
+					 end
+				end
             moveSet[127-(4*pawnCounter) -: 4] = pawn;
-            pawnCounter <= pawnCounter + 1;
-            pawn        <= 4'b0000;
+            pawnCounter = pawnCounter + 1;
+            pawn        = 4'b0000;
         end
         
         
@@ -871,5 +874,10 @@ module generateMoves(clock,
             moveSet[7 -: 8] = king;
             king <= 2'h00;
         end
+	 
+	 
+	 
+	
+
     end // Always Block End
 endmodule
