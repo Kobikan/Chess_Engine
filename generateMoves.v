@@ -143,68 +143,79 @@ module generateMoves(clock,
         
         
         
-        //Rook
-        rook_flag   <= 1;
-        rookCounter <= 0;
+        
+		  //Rook
+        rook_flag   = 1;
+        rookCounter = 0;
 			for(i = 47; i > 35; i = i-6) begin
             if (local_p == 1) begin
                 if (tempAVW[i/6]) begin
                     for(j = 1; j < 8; j = j + 1) begin //Left
-                        if (tempLVW[i-3 -:3] - j > 0 && rook_flag == 1) begin // If still on board.
-                            if ((board[tempLVW[i -: 3]][tempLVW[i-3 -:3] - j] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-                                rook[11:9] <= rook[11:9] + 3'b001;
+                        if ((tempLVW[i-3 -:3] != 0) && (tempLVW[i-3 -:3] - j >= 0) && rook_flag == 1) begin // If still on board.
+                            if ((board[tempLVW[i -: 3]][tempLVW[i-3 -:3] - j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+                                rook[11:9] = rook[11:9] + 3'b001;
                             else begin
-                                if ((board[tempLVW[i -: 3]][tempLVW[i-3 -:3] - j] && 6'b010_000) != 6'b010_000)begin //If next space is occupied by black piece.
-                                    rook[11:9] <= rook[11:9] + 3'b001;
-                                    rook_flag  <= 0; //Break;
-                                end
+                                if ((board[tempLVW[i -: 3]][tempLVW[i-3 -:3] - j] & 6'b010_000) != 6'b010_000) //If next space is occupied by black piece.
+                                    rook[11:9] = rook[11:9] + 3'b001;
+                                    rook_flag  = 0; //Break;
                             end
                         end
                     end
-                    rook_flag <= 1;
+                    rook_flag = 1;
                     
                     for(j = 1; j < 8; j = j + 1) begin //Right
                         if (tempLVW[i-3 -:3] + j < 8 && rook_flag == 1) begin // If still on board.
-                            if ((board[tempLVW[i -: 3]][tempLVW[i-3 -:3] + j] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-                                rook[8:6] <= rook[8:6] + 3'b001;
+                            if ((board[tempLVW[i -: 3]][tempLVW[i-3 -:3] + j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+                                rook[8:6] = rook[8:6] + 3'b001;
                             else begin
-                                if ((board[tempLVW[i -: 3]][tempLVW[i-3 -:3] + j] && 6'b010_000) != 6'b010_000)begin //If next space is occupied by black piece.
-                                    rook[8:6] <= rook[8:6] + 3'b001;
-                                    rook_flag <= 0; //Break;
-                                end
+                                if ((board[tempLVW[i -: 3]][tempLVW[i-3 -:3] + j] & 6'b010_000) != 6'b010_000) //If next space is occupied by black piece.
+                                    rook[8:6] = rook[8:6] + 3'b001;
+                                rook_flag = 0; //Break;
                             end
                         end
                     end
-                    rook_flag <= 1;
+                    rook_flag = 1;
                     
                     
                     for(j = 1; j < 8; j = j +1) begin //Up
                         if (tempLVW[i -:3] + j < 8 && rook_flag == 1) begin // If still on board.
-                            if ((board[tempLVW[i -: 3] + j][tempLVW[i-3 -:3]] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-                                rook[5:3] <= rook[5:3] + 3'b001;
+                            if ((board[tempLVW[i -: 3] + j][tempLVW[i-3 -:3]] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+                                rook[5:3] = rook[5:3] + 3'b001;
                             else begin
-                                if ((board[tempLVW[i -: 3] + j][tempLVW[i-3 -:3]] && 6'b010_000) != 6'b010_000)begin //If next space is occupied by black piece.
-                                    rook[5:3] <= rook[5:3] + 3'b001;
-                                    rook_flag <= 0; //Break;
-                                end
+                                if ((board[tempLVW[i -: 3] + j][tempLVW[i-3 -:3]] & 6'b010_000) != 6'b010_000) //If next space is occupied by black piece.
+                                    rook[5:3] = rook[5:3] + 3'b001;
+                                rook_flag = 0; //Break;
                             end
                         end
                     end
-                    rook_flag <= 1;
+                    rook_flag = 1;
                     
+//                    for(j = 1; j < 8; j = j +1) begin //Down
+//                        if ((tempLVW[i -:3] != 0) && (tempLVW[i -:3] - j >= 0) && rook_flag == 1) begin // If still on board.
+//                            if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3]] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+//                                rook[2:0] = rook[2:0] + 3'b001;
+//                            else begin
+//                                if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3]] & 6'b010_000) != 6'b010_000) //If next space is occupied by black piece.
+//                                    rook[2:0] = rook[2:0] + 3'b001;
+//                                 rook_flag = 0; //Break;
+//                            end
+//                        end
+//                    end
+//                    rook_flag = 1;
+
                     for(j = 1; j < 8; j = j +1) begin //Down
-                        if (tempLVW[i -:3] - j > 0 && rook_flag == 1) begin // If still on board.
-                            if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3]] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-                                rook[2:0] <= rook[2:0] + 3'b001;
+                        if ((tempLVW[i -:3] != 0) && (tempLVW[i -:3] - j >= 0) && rook_flag == 1) begin // If still on board.
+                            if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3]] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+                                rook[2:0] = rook[2:0] + 3'b001;
                             else begin
-                                if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3]] && 6'b010_000) != 6'b010_000)begin //If next space is occupied by black piece.
-                                    rook[2:0] <= rook[2:0] + 3'b001;
-                                    rook_flag <= 0; //Break;
-                                end
+                                if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3]] & 6'b010_000) != 6'b010_000) //If next space is occupied by black piece.
+                                    rook[2:0] = rook[2:0] + 3'b001;
+                                rook_flag = 0; //Break;
                             end
                         end
                     end
-                    rook_flag <= 1;
+                    rook_flag = 1;
+						  
                 end // Alive Vector End
             end // Player End
             
@@ -213,65 +224,61 @@ module generateMoves(clock,
 					if (tempAVB[i/6]) begin
 						 for(j = 1; j < 8; j = j + 1) begin //Left
 							  if (tempLVB[i-3 -:3] - j >= 0 && rook_flag == 1) begin // If still on board.
-									if ((board[tempLVB[i -: 3]][tempLVB[i-3 -:3] - j] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-										 rook[11:9] <= rook[11:9] + 3'b001;
+									if ((board[tempLVB[i -: 3]][tempLVB[i-3 -:3] - j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+										 rook[11:9] = rook[11:9] + 3'b001;
 									else begin
-										 if ((board[tempLVB[i -: 3]][tempLVB[i-3 -:3] - j] && 6'b010_000) != 6'b000_000)begin //If next space is occupied by white piece.
-											  rook[11:9] <= rook[11:9] + 3'b001;
-											  rook_flag  <= 0; //Break;
-										 end
+										 if ((board[tempLVB[i -: 3]][tempLVB[i-3 -:3] - j] & 6'b010_000) != 6'b000_000) //If next space is occupied by white piece.
+											  rook[11:9] = rook[11:9] + 3'b001;
+										 rook_flag  = 0; //Break;
 									end
 							  end
 						 end
-						 rook_flag <= 1;
+						 rook_flag = 1;
 						 
 						 for(j = 1; j < 8; j = j + 1) begin //Right
 							  if (tempLVB[i-3 -:3] + j < 8 && rook_flag == 1) begin // If still on board.
-									if ((board[tempLVB[i -: 3]][tempLVB[i-3 -:3] + j] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-										 rook[8:6] <= rook[8:6] + 3'b001;
+									if ((board[tempLVB[i -: 3]][tempLVB[i-3 -:3] + j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+										 rook[8:6] = rook[8:6] + 3'b001;
 									else begin
-										 if ((board[tempLVB[i -: 3]][tempLVB[i-3 -:3] + j] && 6'b010_000) != 6'b000_000)begin //If next space is occupied by white piece.
-											  rook[8:6] <= rook[8:6] + 3'b001;
-											  rook_flag <= 0; //Break;
-										 end
+										 if ((board[tempLVB[i -: 3]][tempLVB[i-3 -:3] + j] & 6'b010_000) != 6'b000_000) //If next space is occupied by white piece.
+											  rook[8:6] = rook[8:6] + 3'b001;
+										 rook_flag = 0; //Break;
 									end
 							  end
 						 end
-						 rook_flag <= 1;
+						 rook_flag = 1;
 						 
 						 
 						 for(j = 1; j < 8; j = j +1) begin //Up
 							  if (tempLVB[i -:3] + j < 8 && rook_flag == 1) begin // If still on board.
-									if ((board[tempLVB[i -: 3] + j][tempLVB[i-3 -:3]] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-										 rook[5:3] <= rook[5:3] + 3'b001;
+									if ((board[tempLVB[i -: 3] + j][tempLVB[i-3 -:3]] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+										 rook[5:3] = rook[5:3] + 3'b001;
 									else begin
-										 if ((board[tempLVB[i -: 3] + j][tempLVB[i-3 -:3]] && 6'b010_000) != 6'b000_000)begin //If next space is occupied by white piece.
-											  rook[5:3] <= rook[5:3] + 3'b001;
-											  rook_flag <= 0; //Break;
-										 end
+										 if ((board[tempLVB[i -: 3] + j][tempLVB[i-3 -:3]] & 6'b010_000) != 6'b000_000) //If next space is occupied by white piece.
+											  rook[5:3] = rook[5:3] + 3'b001;
+										 rook_flag = 0; //Break;
 									end
 							  end
 						 end
-						 rook_flag <= 1;
+						 rook_flag = 1;
 						 
 						for(j = 1; j < 8; j = j +1) begin //Down
 							if (tempLVB[i -:3] - j >= 0 && rook_flag == 1) begin // If still on board.
-								if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 -:3]] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-										 rook[2:0] <= rook[2:0] + 3'b001;
+								if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 -:3]] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+										 rook[2:0] = rook[2:0] + 3'b001;
 								else begin
-									if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 -:3]] && 6'b010_000) != 6'b000_000)begin //If next space is occupied by white piece.
-										rook[2:0] <= rook[2:0] + 3'b001;
-										rook_flag <= 0; //Break;
-									end
+									if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 -:3]] & 6'b010_000) != 6'b000_000) //If next space is occupied by white piece.
+										rook[2:0] = rook[2:0] + 3'b001;
+								   rook_flag = 0; //Break;
 								end
 							end
 						end
-						rook_flag <= 1;
+						rook_flag = 1;
 					end
 				end
-				moveSet[95 - (rookCounter*12) -: 12] <= rook;
-				rook                                 <= 12'b0000_0000_0000;
-				rookCounter                          <= rookCounter + 1;
+				moveSet[95 - (rookCounter*12) -: 12] = rook;
+				rook                                 = 12'b0000_0000_0000;
+				rookCounter                          = rookCounter + 1;
 			end
     
     // Knight
