@@ -1,10 +1,20 @@
 `timescale 1ns / 1ps
 
-module ai_engine( clk, pl, en, RST, location_vectors_w, location_vectors_b, alive_vectors_w, alive_vectors_b, piece_to_move, output_move, done);
+module AI_Engine( clk, pl, en, RST, location_vectors_w, location_vectors_b, alive_vectors_w, alive_vectors_b, piece_to_move, output_move, done, move_vec_P, move_vec_R, move_vec_N, move_vec_B, move_vec_Q, move_vec_K, pieceId, ready, end_moves);
 	input clk;
 	input en;
 	input RST;
 	input pl;
+	input [1:0]  move_vec_P; //Format: (U(00)/U2(01)/UL(10)/UR(11)(2-bit));
+	input [4:0]   move_vec_R; //Format: (L(00)/R(01)/U(10)/D(11)(2-bit):Squares(3-bit)).
+	input [2:0]	  move_vec_N; //Format: (LD(000)/LU(001)/UL(010)/UR(011)/RU(100)/RD(101)/DL(110)/DR(111)(3-bit)).
+	input [2:0]   move_vec_B; //Format: (UL(00)/UR(01)/DL(10)/DR(11)(2-bit):Squares(3-bit)).
+	input [5:0]   move_vec_Q; //Format: (L(000)/R(001)/U(010)/D(011)/UL(100)/UR(101)/DL(110)/DR(111)(3-bit):Squares(3-bit)).
+	input [2:0]   move_vec_K; //Format: (L(000)/R(001)/U(010)/D(011)/UL(100)/UR(101)/DL(110)/DR(111)(3-bit)).
+	input [3:0]	  pieceId;
+	input ready;
+	input end_moves;
+
 	output [95:0] location_vectors_b;
 	output [95:0] location_vectors_w;
 	output [15:0] alive_vectors_w;
@@ -72,6 +82,7 @@ module ai_engine( clk, pl, en, RST, location_vectors_w, location_vectors_b, aliv
 	reg signed [HEUR_WIDTH:0] max_p_d;
 	reg signed [HEUR_WIDTH:0] max_p_q;
 	
+	
 	always @( * ) begin
 		done_d = done_q;	
 		best_move_d = best_move_q;
@@ -98,6 +109,8 @@ module ai_engine( clk, pl, en, RST, location_vectors_w, location_vectors_b, aliv
 							state_d = RESET;
 						end
 						done_d = 1'b0;				
+					end
+			EXPLORE: begin
 					end
 		endcase
 	end
