@@ -41,7 +41,7 @@ module generateMoves(clock,
     parameter occupied = 1'b1;
     parameter empty    = 1'b0;
     
-    integer i, j, k, local_p, pawnCounter = 0, rookCounter = 0, rook_flag = 1, knightCounter = 0, bishopCounter = 0, bishop_flag = 1, queenCounter = 0, queen_flag = 1;
+    integer i, j, k, local_p, pawnCounter = 0, rookCounter = 0, rook_flag = 1, knightCounter = 0, bishopCounter = 0, bishop_flag = 1, queen_flag = 1;
     
     initial begin
         pawn   = 1'h0;
@@ -631,249 +631,356 @@ module generateMoves(clock,
 			end
 	 
 	 // Queen
-    queen_flag   <= 1;
-    queenCounter <= 0;
-    for(i = 11; i > 5; i = i-6) begin
-        if (local_p == 1) begin
-            if (tempAVW[i/6]) begin
-				  for(j = 1; j < 8; j = j + 1) begin //Left
-						if (tempLVW[i-3 -:3] - j > 0 && queen_flag == 1) begin // If still on board.
-							 if ((board[tempLVW[i -: 3]][tempLVW[i-3 -:3] - j] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-								  queen[23:21] <= queen[23:21] + 3'b001;
-							 else begin
-								  if ((board[tempLVW[i -: 3]][tempLVW[i-3 -:3] - j] && 6'b010_000) != 6'b010_000)begin //If next space is occupied by black piece.
-										queen[23:21] <= queen[23:21] + 3'b001;
-										queen_flag  <= 0; //Break;
-								  end
-							 end
-						end
-				  end
-				  queen_flag <= 1;
-				  
-				  for(j = 1; j < 8; j = j + 1) begin //Right
-						if (tempLVW[i-3 -:3] + j < 8 && queen_flag == 1) begin // If still on board.
-							 if ((board[tempLVW[i -: 3]][tempLVW[i-3 -:3] + j] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-								  queen[20:18] <= queen[20:18] + 3'b001;
-							 else begin
-								  if ((board[tempLVW[i -: 3]][tempLVW[i-3 -:3] + j] && 6'b010_000) != 6'b010_000)begin //If next space is occupied by black piece.
-										queen[20:18] <= queen[20:18] + 3'b001;
-										queen_flag <= 0; //Break;
-								  end
-							 end
-						end
-				  end
-				  queen_flag <= 1;
-				  
-				  
-				  for(j = 1; j < 8; j = j +1) begin //Up
-						if (tempLVW[i -:3] + j < 8 && queen_flag == 1) begin // If still on board.
-							 if ((board[tempLVW[i -: 3] + j][tempLVW[i-3 -:3]] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-								  queen[17:15] <= queen[17:15] + 3'b001;
-							 else begin
-								  if ((board[tempLVW[i -: 3] + j][tempLVW[i-3 -:3]] && 6'b010_000) != 6'b010_000)begin //If next space is occupied by black piece.
-										queen[17:15] <= queen[17:15] + 3'b001;
-										queen_flag <= 0; //Break;
-								  end
-							 end
-						end
-				  end
-				  queen_flag <= 1;
-				  
-					for(j = 1; j < 8; j = j +1) begin //Down
-						if (tempLVW[i -:3] - j > 0 && queen_flag == 1) begin // If still on board.
-							if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3]] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-								  queen[14:12] <= queen[14:12] + 3'b001;
-							else begin
-								if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3]] && 6'b010_000) != 6'b010_000)begin //If next space is occupied by black piece.
-										queen[14:12] <= queen[14:12] + 3'b001;
-										queen_flag <= 0; //Break;
+    queen_flag   = 1;
+			for(i = 11; i > 6; i = i-6) begin
+            if (local_p == 1) begin
+                if (tempAVW[i/6]) begin
+                 for(j = 1; j < 8; j = j + 1) begin //Left
+								if(tempLVW[i-3 -:3] != 0)begin
+									if ((tempLVW[i-3 -:3] - j > 0) && queen_flag == 1) begin // If still on board.
+										 if ((board[tempLVW[i -: 3]][tempLVW[i-3 -:3] - j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+											  queen[23:21] = queen[23:21] + 3'b001;
+										 else begin
+											  if ((board[tempLVW[i -: 3]][tempLVW[i-3 -:3] - j] & 6'b010_000) != 6'b010_000) //If next space is occupied by black piece.
+													queen[23:21] = queen[23:21] + 3'b001;
+													queen_flag  = 0; //Break;
+										 end
+									end
+									else if((tempLVW[i-3 -:3] - j == 0)&& queen_flag == 1) begin
+										 if ((board[tempLVW[i -: 3]][tempLVW[i-3 -:3] - j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+											  queen[23:21] = queen[23:21] + 3'b001;
+										 else begin
+											  if ((board[tempLVW[i -: 3]][tempLVW[i-3 -:3] - j] & 6'b010_000) != 6'b010_000) //If next space is occupied by black piece.
+													queen[23:21] = queen[23:21] + 3'b001;
+										 end
+										 queen_flag = 0; //Break;
+									end
 								end
-							end
-						end
-					end
-					queen_flag <= 1;
-			  
-					for(j = 1; j < 8; j = j + 1) begin //Upper Left
-						if (tempLVW[i -:3] + j < 8 && tempLVW[i-3 -:3] - j >= 0 && queen_flag == 1) begin // If still on board.
-							if ((board[tempLVW[i -: 3] + j][tempLVW[i-3 -:3] - j] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-								 queen[11:9] <= queen[11:9] + 3'b001;
-							else begin
-								 if ((board[tempLVW[i -: 3] + j][tempLVW[i-3 -:3] - j] && 6'b010_000) != 6'b010_000)begin //If next space is occupied by black piece.
-									  queen[11:9] <= queen[11:9] + 3'b001;
-									  queen_flag  <= 0; //Break;
-								 end
-							end
-						end
-					end
-					queen_flag <= 1;
-				 
-					for(j = 1; j < 8; j = j + 1) begin //Upper Right
-						if (tempLVW[i -:3] + j < 8 && tempLVW[i-3 -:3] + j < 8 && queen_flag == 1) begin // If still on board.
-							if ((board[tempLVW[i -: 3] + j][tempLVW[i-3 -:3] + j] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-								 queen[8:6] <= queen[8:6] + 3'b001;
-							else begin
-								if ((board[tempLVW[i -: 3] + j][tempLVW[i-3 -:3] + j] && 6'b010_000) != 6'b010_000)begin //If next space is occupied by black piece.
-									  queen[8:6] <= queen[8:6] + 3'b001;
-									  queen_flag <= 0; //Break;
+						  end
+                    queen_flag = 1;
+                    
+                    for(j = 1; j < 8; j = j + 1) begin //Right
+                        if (tempLVW[i-3 -:3] + j < 8 && queen_flag == 1) begin // If still on board.
+                            if ((board[tempLVW[i -: 3]][tempLVW[i-3 -:3] + j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+                                queen[20:18] = queen[20:18] + 3'b001;
+                            else begin
+                                if ((board[tempLVW[i -: 3]][tempLVW[i-3 -:3] + j] & 6'b010_000) != 6'b010_000) //If next space is occupied by black piece.
+                                    queen[20:18] = queen[20:18] + 3'b001;
+                                queen_flag = 0; //Break;
+                            end
+                        end
+                    end
+                    queen_flag = 1;
+                    
+                    
+                    for(j = 1; j < 8; j = j +1) begin //Up
+                        if (tempLVW[i -:3] + j < 8 && queen_flag == 1) begin // If still on board.
+                            if ((board[tempLVW[i -: 3] + j][tempLVW[i-3 -:3]] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+                                queen[17:15] = queen[17:15] + 3'b001;
+                            else begin
+                                if ((board[tempLVW[i -: 3] + j][tempLVW[i-3 -:3]] & 6'b010_000) != 6'b010_000) //If next space is occupied by black piece.
+                                    queen[17:15] = queen[17:15] + 3'b001;
+                                queen_flag = 0; //Break;
+                            end
+                        end
+                    end
+                    queen_flag = 1;
+
+                    for(j = 1; j < 8; j = j +1) begin //Down
+								if(tempLVW[i -:3] != 0)begin
+									if ((tempLVW[i -:3] - j > 0) && queen_flag == 1) begin // If still on board.
+										 bitdebug[2:0] = tempLVW[i -:3] - j;
+										 intdebug = j;
+										 if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3]] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+											  queen[14:12] = queen[14:12] + 3'b001;
+										 else begin
+											  if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3]] & 6'b010_000) != 6'b010_000) //If next space is occupied by black piece.
+													queen[14:12] = queen[14:12] + 3'b001;
+											  queen_flag = 0; //Break;
+										 end
+									end
+									else if((tempLVW[i -:3] - j == 0)&& queen_flag == 1) begin
+										 if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3]] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+											  queen[14:12] = queen[14:12] + 3'b001;
+										 else begin
+											  if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3]] & 6'b010_000) != 6'b010_000) //If next space is occupied by black piece.
+													queen[14:12] = queen[14:12] + 3'b001;
+										 end
+										 queen_flag = 0; //Break;
+									end
+							  end
+						  end
+                    queen_flag = 1;
+						  
+                    for(j = 1; j < 8; j = j + 1) begin //Upper Left
+								if(tempLVW[i-3 -:3] != 0)begin
+									if ((tempLVW[i -:3] + j < 8) && (tempLVW[i-3 -:3] - j > 0) && queen_flag == 1) begin // If still on board.
+										 if ((board[tempLVW[i -: 3] + j][tempLVW[i-3 -:3] - j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+											  queen[11:9] = queen[11:9] + 3'b001;
+										 else begin
+											  if ((board[tempLVW[i -: 3] + j][tempLVW[i-3 -:3] - j] & 6'b010_000) != 6'b010_000) //If next space is occupied by black piece.
+													queen[11:9] = queen[11:9] + 3'b001;
+											  queen_flag  = 0; //Break;
+										 end
+									end
+									else if((tempLVW[i-3 -:3] - j == 0)&& queen_flag == 1) begin
+										 if ((board[tempLVW[i -: 3] + j][tempLVW[i-3 -:3] - j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+											  queen[11:9] = queen[11:9] + 3'b001;
+										 else begin
+											  if ((board[tempLVW[i -: 3] + j][tempLVW[i-3 -:3] - j] & 6'b010_000) != 6'b010_000) //If next space is occupied by black piece.
+													queen[11:9] = queen[11:9] + 3'b001;
+										 end
+										 queen_flag = 0; //Break;
+									end
+									else
+										queen_flag = 0;
 								end
-							end
-						end
-					end
-					queen_flag <= 1;
-				 
-				 
-					for(j = 1; j < 8; j = j +1) begin //Lower Left
-						if (tempLVW[i -:3] - j >= 0 && tempLVW[i-3 -:3] - j >= 0 && queen_flag == 1) begin // If still on board.
-							if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3] - j] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-								 queen[5:3] <= queen[5:3] + 3'b001;
-							else begin
-								if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3] - j] && 6'b010_000) != 6'b010_000)begin //If next space is occupied by black piece.
-									queen[5:3] <= queen[5:3] + 3'b001;
-									queen_flag <= 0; //Break;
+						  end
+                    queen_flag = 1;
+                    
+                    for(j = 1; j < 8; j = j + 1) begin //Upper Right
+                        if ((tempLVW[i -:3] + j < 8) &&(tempLVW[i-3 -:3] + j < 8) && queen_flag == 1) begin // If still on board.
+                            if ((board[tempLVW[i -: 3]+j][tempLVW[i-3 -:3] + j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+                                queen[8:6] = queen[8:6] + 3'b001;
+                            else begin
+                                if ((board[tempLVW[i -: 3]+j][tempLVW[i-3 -:3] + j] & 6'b010_000) != 6'b010_000) //If next space is occupied by black piece.
+                                    queen[8:6] = queen[8:6] + 3'b001;
+                                queen_flag = 0; //Break;
+                            end
+                        end
+                    end
+                    queen_flag = 1;
+                    
+                    
+                    for(j = 1; j < 8; j = j +1) begin //Lower Left
+								if(tempLVW[i -:3] != 0 && tempLVW[i-3 -:3] != 0)begin
+									if ((tempLVW[i -:3] - j > 0) && (tempLVW[i-3 -:3] - j > 0) && queen_flag == 1) begin // If still on board.
+										 if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3] - j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+											  queen[5:3] = queen[5:3] + 3'b001;
+										 else begin
+											  if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3] - j] & 6'b010_000) != 6'b010_000) //If next space is occupied by black piece.
+													queen[5:3] = queen[5:3] + 3'b001;
+													queen_flag  = 0; //Break;
+										 end
+									end
+									else if(((tempLVW[i -:3] - j == 0) || (tempLVW[i-3 -:3] - j == 0))&& queen_flag == 1) begin
+										 if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3] - j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+											  queen[5:3] = queen[5:3] + 3'b001;
+										 else begin
+											  if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3] - j] & 6'b010_000) != 6'b010_000) //If next space is occupied by black piece.
+													queen[5:3] = queen[5:3] + 3'b001;
+										 end
+										 queen_flag = 0; //Break;
+									end
+									else
+										queen_flag = 0;
 								end
-							end
-						end
-					end
-					queen_flag <= 1;
-				 
-					for(j = 1; j < 8; j = j +1) begin //Lower Right
-						if (tempLVW[i -:3] - j >= 0 && tempLVW[i-3 -:3] + j < 8 && queen_flag == 1) begin // If still on board.
-							if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 +:3] + j] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-								 queen[2:0] <= queen[2:0] + 3'b001;
-							else begin
-								if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3] + j] && 6'b010_000) != 6'b010_000)begin //If next space is occupied by black piece.
-									queen[2:0] <= queen[2:0] + 3'b001;
-									queen_flag <= 0; //Break;
+                    end
+                    queen_flag = 1;
+
+                    for(j = 1; j < 8; j = j +1) begin //Lower Right
+								if(tempLVW[i -:3] != 0)begin
+									if ((tempLVW[i -:3] - j > 0) && (tempLVW[i-3 -:3] + j < 8) && queen_flag == 1) begin // If still on board.
+										 if ((board[tempLVW[i -: 3] + j][tempLVW[i-3 -:3] - j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+											  queen[2:0] = queen[2:0] + 3'b001;
+										 else begin
+											  if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3] + j] & 6'b010_000) != 6'b010_000) //If next space is occupied by black piece.
+													queen[2:0] = queen[2:0] + 3'b001;
+													queen_flag  = 0; //Break;
+										 end
+									end
+									else if((tempLVW[i -:3] - j == 0)&& queen_flag == 1) begin
+										 if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3] + j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+											  queen[2:0] = queen[2:0] + 3'b001;
+										 else begin
+											  if ((board[tempLVW[i -: 3] - j][tempLVW[i-3 -:3] + j] & 6'b010_000) != 6'b010_000) //If next space is occupied by black piece.
+													queen[2:0] = queen[2:0] + 3'b001;
+										 end
+										 queen_flag = 0; //Break;
+									end
+									else
+										queen_flag = 0;
 								end
-							end
-						end
-					end
-					queen_flag <= 1;
-				end // Alive Vector End
-			end // Player End
-        
-        //Black
-        else begin
-        if (tempAVB[i/6]) begin
-				for(j = 1; j < 8; j = j + 1) begin //Left
-						if (tempLVB[i-3 -:3] - j > 0 && queen_flag == 1) begin // If still on board.
-							 if ((board[tempLVB[i -: 3]][tempLVB[i-3 -:3] - j] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-								  queen[23:21] <= queen[23:21] + 3'b001;
-							 else begin
-								  if ((board[tempLVB[i -: 3]][tempLVB[i-3 -:3] - j] && 6'b010_000) != 6'b010_000)begin //If next space is occupied by black piece.
-										queen[23:21] <= queen[23:21] + 3'b001;
-										queen_flag  <= 0; //Break;
-								  end
-							 end
-						end
-				  end
-				  queen_flag <= 1;
-				  
-				  for(j = 1; j < 8; j = j + 1) begin //Right
-						if (tempLVB[i-3 -:3] + j < 8 && queen_flag == 1) begin // If still on board.
-							 if ((board[tempLVB[i -: 3]][tempLVB[i-3 -:3] + j] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-								  queen[20:18] <= queen[20:18] + 3'b001;
-							 else begin
-								  if ((board[tempLVB[i -: 3]][tempLVB[i-3 -:3] + j] && 6'b010_000) != 6'b010_000)begin //If next space is occupied by black piece.
-										queen[20:18] <= queen[20:18] + 3'b001;
-										queen_flag <= 0; //Break;
-								  end
-							 end
-						end
-				  end
-				  queen_flag <= 1;
-				  
-				  
-				  for(j = 1; j < 8; j = j +1) begin //Up
-						if (tempLVB[i -:3] + j < 8 && queen_flag == 1) begin // If still on board.
-							 if ((board[tempLVB[i -: 3] + j][tempLVB[i-3 -:3]] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-								  queen[17:15] <= queen[17:15] + 3'b001;
-							 else begin
-								  if ((board[tempLVB[i -: 3] + j][tempLVB[i-3 -:3]] && 6'b010_000) != 6'b010_000)begin //If next space is occupied by black piece.
-										queen[17:15] <= queen[17:15] + 3'b001;
-										queen_flag <= 0; //Break;
-								  end
-							 end
-						end
-				  end
-				  queen_flag <= 1;
-				  
-					for(j = 1; j < 8; j = j +1) begin //Down
-						if (tempLVB[i -:3] - j > 0 && queen_flag == 1) begin // If still on board.
-							if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 -:3]] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-								  queen[14:12] <= queen[14:12] + 3'b001;
-							else begin
-								if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 -:3]] && 6'b010_000) != 6'b010_000)begin //If next space is occupied by black piece.
-										queen[14:12] <= queen[14:12] + 3'b001;
-										queen_flag <= 0; //Break;
+						  end
+                    queen_flag = 1;
+						  
+                end // Alive Vector End
+            end // Player End
+            
+            //Black
+            else begin
+					if (tempAVB[i/6]) begin
+					for(j = 1; j < 8; j = j + 1) begin //Left
+								if(tempLVB[i-3 -:3] != 0)begin
+									if ((tempLVB[i-3 -:3] - j > 0) && queen_flag == 1) begin // If still on board.
+										 if ((board[tempLVB[i -: 3]][tempLVB[i-3 -:3] - j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+											  queen[23:21] = queen[23:21] + 3'b001;
+										 else begin
+											  if ((board[tempLVB[i -: 3]][tempLVB[i-3 -:3] - j] & 6'b010_000) != 6'b000_000) //If next space is occupied by black piece.
+													queen[23:21] = queen[23:21] + 3'b001;
+													queen_flag  = 0; //Break;
+										 end
+									end
+									else if((tempLVB[i-3 -:3] - j == 0)&& queen_flag == 1) begin
+										 if ((board[tempLVB[i -: 3]][tempLVB[i-3 -:3] - j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+											  queen[23:21] = queen[23:21] + 3'b001;
+										 else begin
+											  if ((board[tempLVB[i -: 3]][tempLVB[i-3 -:3] - j] & 6'b010_000) != 6'b000_000) //If next space is occupied by black piece.
+													queen[23:21] = queen[23:21] + 3'b001;
+										 end
+										 queen_flag = 0; //Break;
+									end
 								end
-							end
-						end
-					end
-					queen_flag <= 1;
-			  
-					for(j = 1; j < 8; j = j + 1) begin //Upper Left
-						if (tempLVB[i -:3] + j < 8 && tempLVB[i-3 -:3] - j >= 0 && queen_flag == 1) begin // If still on board.
-							if ((board[tempLVB[i -: 3] + j][tempLVB[i-3 -:3] - j] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-								 queen[11:9] <= queen[11:9] + 3'b001;
-							else begin
-								 if ((board[tempLVB[i -: 3] + j][tempLVB[i-3 -:3] - j] && 6'b010_000) != 6'b010_000)begin //If next space is occupied by black piece.
-									  queen[11:9] <= queen[11:9] + 3'b001;
-									  queen_flag  <= 0; //Break;
-								 end
-							end
-						end
-					end
-					queen_flag <= 1;
-				 
-					for(j = 1; j < 8; j = j + 1) begin //Upper Right
-						if (tempLVB[i -:3] + j < 8 && tempLVB[i-3 -:3] + j < 8 && queen_flag == 1) begin // If still on board.
-							if ((board[tempLVB[i -: 3] + j][tempLVB[i-3 -:3] + j] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-								 queen[8:6] <= queen[8:6] + 3'b001;
-							else begin
-								if ((board[tempLVB[i -: 3] + j][tempLVB[i-3 -:3] + j] && 6'b010_000) != 6'b010_000)begin //If next space is occupied by black piece.
-									  queen[8:6] <= queen[8:6] + 3'b001;
-									  queen_flag <= 0; //Break;
+						  end
+                    queen_flag = 1;
+                    
+                    for(j = 1; j < 8; j = j + 1) begin //Right
+                        if (tempLVB[i-3 -:3] + j < 8 && queen_flag == 1) begin // If still on board.
+                            if ((board[tempLVB[i -: 3]][tempLVB[i-3 -:3] + j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+                                queen[20:18] = queen[20:18] + 3'b001;
+                            else begin
+                                if ((board[tempLVB[i -: 3]][tempLVB[i-3 -:3] + j] & 6'b010_000) != 6'b000_000) //If next space is occupied by black piece.
+                                    queen[20:18] = queen[20:18] + 3'b001;
+                                queen_flag = 0; //Break;
+                            end
+                        end
+                    end
+                    queen_flag = 1;
+                    
+                    
+                    for(j = 1; j < 8; j = j +1) begin //Up
+                        if (tempLVB[i -:3] + j < 8 && queen_flag == 1) begin // If still on board.
+                            if ((board[tempLVB[i -: 3] + j][tempLVB[i-3 -:3]] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+                                queen[17:15] = queen[17:15] + 3'b001;
+                            else begin
+                                if ((board[tempLVB[i -: 3] + j][tempLVB[i-3 -:3]] & 6'b010_000) != 6'b000_000) //If next space is occupied by black piece.
+                                    queen[17:15] = queen[17:15] + 3'b001;
+                                queen_flag = 0; //Break;
+                            end
+                        end
+                    end
+                    queen_flag = 1;
+
+                    for(j = 1; j < 8; j = j +1) begin //Down
+								if(tempLVB[i -:3] != 0)begin
+									if ((tempLVB[i -:3] - j > 0) && queen_flag == 1) begin // If still on board.
+										 intdebug = j;
+										 if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 -:3]] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+											  queen[14:12] = queen[14:12] + 3'b001;
+										 else begin
+											  if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 -:3]] & 6'b010_000) != 6'b000_000) //If next space is occupied by black piece.
+													queen[14:12] = queen[14:12] + 3'b001;
+											  queen_flag = 0; //Break;
+										 end
+									end
+									else if((tempLVB[i -:3] - j == 0)&& queen_flag == 1) begin
+										 if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 -:3]] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+											  queen[14:12] = queen[14:12] + 3'b001;
+										 else begin
+											  if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 -:3]] & 6'b010_000) != 6'b000_000) //If next space is occupied by black piece.
+													queen[14:12] = queen[14:12] + 3'b001;
+										 end
+										 queen_flag = 0; //Break;
+									end
+							  end
+						  end
+                    queen_flag = 1;
+                    for(j = 1; j < 8; j = j + 1) begin //Upper Left
+								if(tempLVB[i-3 -:3] != 0)begin
+									if ((tempLVB[i -:3] + j < 8) && (tempLVB[i-3 -:3] - j > 0) && queen_flag == 1) begin // If still on board.
+										 if ((board[tempLVB[i -: 3] + j][tempLVB[i-3 -:3] - j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+											  queen[11:9] = queen[11:9] + 3'b001;
+										 else begin
+											  if ((board[tempLVB[i -: 3] + j][tempLVB[i-3 -:3] - j] & 6'b110_000) != 6'b100_000) //If next space is occupied by black piece.
+													queen[11:9] = queen[11:9] + 3'b001;
+											  queen_flag  = 0; //Break;
+										 end
+									end
+									else if((tempLVB[i-3 -:3] - j == 0)&& queen_flag == 1) begin
+										 if ((board[tempLVB[i -: 3] + j][tempLVB[i-3 -:3] - j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+											  queen[11:9] = queen[11:9] + 3'b001;
+										 else begin
+											  if ((board[tempLVB[i -: 3] + j][tempLVB[i-3 -:3] - j] & 6'b110_000) != 6'b100_000) //If next space is occupied by black piece.
+													queen[11:9] = queen[11:9] + 3'b001;
+										 end
+										 queen_flag = 0; //Break;
+									end
+									else
+										queen_flag = 0;
 								end
-							end
-						end
-					end
-					queen_flag <= 1;
-				 
-				 
-					for(j = 1; j < 8; j = j +1) begin //Lower Left
-						if (tempLVB[i -:3] - j >= 0 && tempLVB[i-3 -:3] - j >= 0 && queen_flag == 1) begin // If still on board.
-							if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 -:3] - j] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-								 queen[5:3] <= queen[5:3] + 3'b001;
-							else begin
-								if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 -:3] - j] && 6'b010_000) != 6'b010_000)begin //If next space is occupied by black piece.
-									queen[5:3] <= queen[5:3] + 3'b001;
-									queen_flag <= 0; //Break;
+						  end
+                    queen_flag = 1;
+                    
+                    for(j = 1; j < 8; j = j + 1) begin //Upper Right
+                        if ((tempLVB[i -:3] + j < 8) &&(tempLVB[i-3 -:3] + j < 8) && queen_flag == 1) begin // If still on board.
+                            if ((board[tempLVB[i -: 3]+j][tempLVB[i-3 -:3] + j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+                                queen[8:6] = queen[8:6] + 3'b001;
+                            else begin
+                                if ((board[tempLVB[i -: 3]+j][tempLVB[i-3 -:3] + j] & 6'b110_000) != 6'b100_000) //If next space is occupied by black piece.
+                                    queen[8:6] = queen[8:6] + 3'b001;
+                                queen_flag = 0; //Break;
+                            end
+                        end
+                    end
+                    queen_flag = 1;
+                    
+                    
+                    for(j = 1; j < 8; j = j +1) begin //Lower Left
+								if(tempLVB[i -:3] != 0 && tempLVB[i-3 -:3] != 0)begin
+									if ((tempLVB[i -:3] - j > 0) && (tempLVB[i-3 -:3] - j > 0) && queen_flag == 1) begin // If still on board.
+										 if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 -:3] - j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+											  queen[5:3] = queen[5:3] + 3'b001;
+										 else begin
+											  if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 -:3] - j] & 6'b110_000) != 6'b100_000) //If next space is occupied by black piece.
+													queen[5:3] = queen[5:3] + 3'b001;
+													queen_flag  = 0; //Break;
+										 end
+									end
+									else if(((tempLVB[i -:3] - j == 0) || (tempLVB[i-3 -:3] - j == 0))&& queen_flag == 1) begin
+										 if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 -:3] - j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+											  queen[5:3] = queen[5:3] + 3'b001;
+										 else begin
+											  if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 -:3] - j] & 6'b110_000) != 6'b100_000) //If next space is occupied by black piece.
+													queen[5:3] = queen[5:3] + 3'b001;
+										 end
+										 queen_flag = 0; //Break;
+									end
+									else
+										queen_flag = 0;
 								end
-							end
-						end
-					end
-					queen_flag <= 1;
-				 
-					for(j = 1; j < 8; j = j +1) begin //Lower Right
-						if (tempLVB[i -:3] - j >= 0 && tempLVB[i-3 -:3] + j < 8 && queen_flag == 1) begin // If still on board.
-							if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 +:3] + j] && 6'b100_000) == 6'b000_000) //If next space is not occupied.
-								 queen[2:0] <= queen[2:0] + 3'b001;
-							else begin
-								if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 -:3] + j] && 6'b010_000) != 6'b010_000)begin //If next space is occupied by black piece.
-									queen[2:0] <= queen[2:0] + 3'b001;
-									queen_flag <= 0; //Break;
+                    end
+                    queen_flag = 1;
+
+                    for(j = 1; j < 8; j = j +1) begin //Lower Right
+								if(tempLVB[i -:3] != 0)begin
+									if ((tempLVB[i -:3] - j > 0) && (tempLVB[i-3 -:3] + j < 8) && queen_flag == 1) begin // If still on board.
+										 if ((board[tempLVB[i -: 3] + j][tempLVB[i-3 -:3] - j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+											  queen[2:0] = queen[2:0] + 3'b001;
+										 else begin
+											  if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 -:3] + j] & 6'b110_000) != 6'b100_000) //If next space is occupied by black piece.
+													queen[2:0] = queen[2:0] + 3'b001;
+													queen_flag  = 0; //Break;
+										 end
+									end
+									else if((tempLVB[i -:3] - j == 0)&& queen_flag == 1) begin
+										 if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 -:3] + j] & 6'b100_000) == 6'b000_000) //If next space is not occupied.
+											  queen[2:0] = queen[2:0] + 3'b001;
+										 else begin
+											  if ((board[tempLVB[i -: 3] - j][tempLVB[i-3 -:3] + j] & 6'b110_000) != 6'b100_000) //If next space is occupied by black piece.
+													queen[2:0] = queen[2:0] + 3'b001;
+										 end
+										 queen_flag = 0; //Break;
+									end
+									else
+										queen_flag = 0;
 								end
-							end
-						end
+						  end
+                    queen_flag = 1;
 					end
-					queen_flag <= 1;
-        end // Alive Vector End
-    end
-    moveSet[31 -: 24] <= queen;
-    queen             <= 6'h000000;
-    end
-	 
+				end
+				moveSet[31 -: 24] = queen;
+				queen             = 12'b0000_0000_0000;
+			end	 
 	 
 	 
      // King
