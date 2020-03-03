@@ -34,7 +34,7 @@ module check(clock,
   parameter occupied = 1'b1;
   parameter empty    = 1'b0;
 
-  integer i, j, k, local_p, pawnCounter = 0, rookCounter = 0, rook_flag = 1, knightCounter = 0, bishopCounter = 0, bishop_flag = 1, queen_flag = 1;
+  integer i, j, k, local_p, pawnCounter = 0, rookCounter = 0, rook_flag = 1, knightCounter = 0, bishopCounter = 0, bishop_flag = 1, king_flag = 1;
 
   initial begin
     isCheck = 4'h0000;
@@ -68,11 +68,11 @@ module check(clock,
 
       queen_flag   = 1;
       if (player) begin
-		  for(j = 1; j < 8; j = j + 1) begin //Left
+        for(j = 1; j < 8; j = j + 1) begin //Left
           if(tempLVW[2 :0] != 0)begin
-            if ((tempLVW[5 :3] - j > 0) && queen_flag == 1) begin // If still on board.
+            if ((tempLVW[5 :3] - j > 0) && king_flag == 1) begin // If still on board.
               if ((board[tempLVW[5 -: 3]][tempLVW[5-3 -:3] - j] & 6'b110_000) == 6'b110_000)begin //If next space is occupied by White piece.
-                queen_flag  = 0; //Break;
+                king_flag  = 0; //Break;
                 bitdebug[2:0] = 3'b000;
               end
               else if ((board[tempLVW[5 -: 3]][tempLVW[5-3 -:3] - j] & 6'b110_000) == 6'b100_000)begin //If next space is occupied by Black piece.
@@ -84,13 +84,13 @@ module check(clock,
                 else if ((board[tempLVW[5 -: 3]][tempLVW[5-3 -:3] - j] & 6'b001_111) == 6'b000_001)begin//Queen 
                   isCheck[14] = 1'b1;
                 end
-                queen_flag  = 0; //Break;
+                king_flag  = 0; //Break;
               end
             end
-            else if((tempLVW[5-3 -:3] == j)&& queen_flag == 1) begin
+            else if((tempLVW[5-3 -:3] == j)&& king_flag == 1) begin
               bitdebug[2:0] = 3'b010;
               if ((board[tempLVW[5 -: 3]][tempLVW[5-3 -:3] - j] & 6'b110_000) == 6'b110_000) //If next space is occupied by White piece.
-                queen_flag  = 0; //Break;
+                king_flag  = 0; //Break;
               else if ((board[tempLVW[5 -: 3]][tempLVW[5-3 -:3] - j] & 6'b110_000) == 6'b100_000)begin //If next space is occupied by Black piece.
                 if((board[tempLVW[5 -: 3]][tempLVW[5-3 -:3] - j] & 6'b001_111) == 6'b000_111)//Rook 1 
                   isCheck[8] = 1'b1;
@@ -99,20 +99,20 @@ module check(clock,
                 else if ((board[tempLVW[5 -: 3]][tempLVW[5-3 -:3] - j] & 6'b001_111) == 6'b000_001)//Queen 
                   isCheck[14] = 1'b1;
               end
-              queen_flag = 0; //Break;
+              king_flag = 0; //Break;
 
             end
           end
           bitdebug[5:0] = board[tempLVW[5 -: 3]][tempLVW[5-3 -:3]-j];
         end
-        queen_flag = 1;
+        king_flag = 1;
         // End of Left  
 
 
         for(j = 1; j < 8; j = j + 1) begin //Right
-          if (tempLVW[5-3 -:3] + j < 8 && queen_flag == 1) begin // If still on board.
+          if (tempLVW[5-3 -:3] + j < 8 && king_flag == 1) begin // If still on board.
             if ((board[tempLVW[5 -: 3]][tempLVW[5-3 -:3] + j] & 6'b110_000) == 6'b110_000) //If next space is white.
-              queen_flag = 0; //Break;
+              king_flag = 0; //Break;
             else if((board[tempLVW[5 -: 3]][tempLVW[5-3 -:3] + j] & 6'b110_000) == 6'b100_000) begin//If next space is occupied by black piece.
               if((board[tempLVW[5 -: 3]][tempLVW[5-3 -:3] + j] & 6'b001_111) == 6'b000_111)//Rook 1 
                 isCheck[8] = 1'b1;
@@ -120,35 +120,35 @@ module check(clock,
                 isCheck[9] = 1'b1;
               else if ((board[tempLVW[5 -: 3]][tempLVW[5-3 -:3] + j] & 6'b001_111) == 6'b000_001)//Queen 
                 isCheck[14] = 1'b1;
-              queen_flag = 0; //Break;
+              king_flag = 0; //Break;
             end
           end
         end
-        queen_flag = 1;
+        king_flag = 1;
 
 
         for(j = 1; j < 8; j = j +1) begin //Up
-          if (tempLVW[5 -:3] + j < 8 && queen_flag == 1) begin // If still on board.
+          if (tempLVW[5 -:3] + j < 8 && king_flag == 1) begin // If still on board.
             if ((board[tempLVW[5 -: 3] + j][tempLVW[5-3 -:3]] & 6'b110_000) == 6'b110_000) //If next space is white and occupied.
-              queen_flag = 0; //Break;
+              king_flag = 0; //Break;
             else if ((board[tempLVW[5 -: 3] + j][tempLVW[5-3 -:3]] & 6'b110_000) == 6'b100_000) begin //If next space is occupied by black piece.
-				  if((board[tempLVW[5 -: 3]+j][tempLVW[5-3 -:3]] & 6'b001_111) == 6'b000_111)//Rook 1 
+              if((board[tempLVW[5 -: 3]+j][tempLVW[5-3 -:3]] & 6'b001_111) == 6'b000_111)//Rook 1 
                 isCheck[8] = 1'b1;
               else if((board[tempLVW[5 -: 3]+j][tempLVW[5-3 -:3]] & 6'b001_111) == 6'b000_110)//Rook 2  
                 isCheck[9] = 1'b1;
               else if ((board[tempLVW[5 -: 3]+j][tempLVW[5-3 -:3]] & 6'b001_111) == 6'b000_001)//Queen 
                 isCheck[14] = 1'b1;    
-              queen_flag = 0; //Break;
+              king_flag = 0; //Break;
             end
           end
         end
-        queen_flag = 1;
+        king_flag = 1;
 
         for(j = 1; j < 8; j = j +1) begin //Down
           if(tempLVW[5 -:3] != 0)begin
-            if ((tempLVW[5 -:3] - j > 0) && queen_flag == 1) begin // If still on board.
+            if ((tempLVW[5 -:3] - j > 0) && king_flag == 1) begin // If still on board.
               if ((board[tempLVW[5 -: 3] - j][tempLVW[5-3 -:3]] & 6'b110_000) == 6'b110_000) //If next space is white and occupied.
-                queen_flag = 0; //Break;
+                king_flag = 0; //Break;
               else if ((board[tempLVW[5 -: 3] - j][tempLVW[5-3 -:3]] & 6'b110_000) == 6'b100_000)begin //If next space is occupied by black piece.
                 if((board[tempLVW[5 -: 3]-j][tempLVW[5-3 -:3]] & 6'b001_111) == 6'b000_111)//Rook 1 
                   isCheck[8] = 1'b1;
@@ -156,12 +156,12 @@ module check(clock,
                   isCheck[9] = 1'b1;
                 else if ((board[tempLVW[5 -: 3]-j][tempLVW[5-3 -:3]] & 6'b001_111) == 6'b000_001)//Queen 
                   isCheck[14] = 1'b1;              
-                queen_flag = 0; //Break;
+                king_flag = 0; //Break;
               end
             end
-            else if((tempLVW[5 -:3] - j == 0)&& queen_flag == 1) begin
+            else if((tempLVW[5 -:3] - j == 0)&& king_flag == 1) begin
               if ((board[tempLVW[5 -: 3] - j][tempLVW[5-3 -:3]] & 6'b110_000) == 6'b110_000) //If next space is white and occupied.
-                queen_flag = 0; //Break;
+                king_flag = 0; //Break;
               else if ((board[tempLVW[5 -: 3] - j][tempLVW[5-3 -:3]] & 6'b110_000) == 6'b100_000)begin //If next space is occupied by black piece.
                 if((board[tempLVW[5 -: 3]-j][tempLVW[5-3 -:3]] & 6'b001_111) == 6'b000_111)//Rook 1 
                   isCheck[8] = 1'b1;
@@ -169,14 +169,137 @@ module check(clock,
                   isCheck[9] = 1'b1;
                 else if ((board[tempLVW[5 -: 3]-j][tempLVW[5-3 -:3]] & 6'b001_111) == 6'b000_001)//Queen 
                   isCheck[14] = 1'b1;              
-                queen_flag = 0; //Break;
+                king_flag = 0; //Break;
               end
             end
           end
         end
-        queen_flag = 1;
+        king_flag = 1;
+
+        for(j = 1; j < 8; j = j + 1) begin //Upper Left
+          if(tempLVW[5-3 -:3] != 0)begin
+            if ((tempLVW[5 -:3] + j < 8) && (tempLVW[5-3 -:3] - j > 0) && king_flag == 1) begin // If still on board.
+              if ((board[tempLVW[5 -: 3] + j][tempLVW[5-3 -:3] - j] & 6'b110_000) == 6'b110_000) //If next space is white and occupied.
+                king_flag = 0; //Break;
+              else if ((board[tempLVW[5 -: 3] + j][tempLVW[5-3 -:3] - j] & 6'b110_000) == 6'b100_000) begin//If next space is occupied by black piece.
+                if((board[tempLVW[5 -: 3]+j][tempLVW[5-3 -:3]-j] & 6'b001_111) == 6'b000_011)//Bishop 1 
+                  isCheck[12] = 1'b1;
+                else if((board[tempLVW[5 -: 3]+j][tempLVW[5-3 -:3]-j] & 6'b001_111) == 6'b000_010)//Bishop 2  
+                  isCheck[13] = 1'b1;
+                else if ((board[tempLVW[5 -: 3]+j][tempLVW[5-3 -:3]-j] & 6'b001_111) == 6'b000_001)//Queen 
+                  isCheck[14] = 1'b1; 
+                king_flag  = 0; //Break;
+              end
+            end
+            else if((tempLVW[5-3 -:3] - j == 0)&& king_flag == 1) begin
+              if ((board[tempLVW[5 -: 3] + j][tempLVW[5-3 -:3] - j] & 6'b110_000) == 6'b110_000) //If next space is white and occupied.
+                king_flag  = 0; //Break;
+              else if ((board[tempLVW[5 -: 3] + j][tempLVW[5-3 -:3] - j] & 6'b110_000) == 6'b100_000) begin//If next space is occupied by black piece.
+                if((board[tempLVW[5 -: 3]+j][tempLVW[5-3 -:3]-j] & 6'b001_111) == 6'b000_011)//Bishop 1 
+                  isCheck[12] = 1'b1;
+                else if((board[tempLVW[5 -: 3]+j][tempLVW[5-3 -:3]-j] & 6'b001_111) == 6'b000_010)//Bishop 2  
+                  isCheck[13] = 1'b1;
+                else if ((board[tempLVW[5 -: 3]+j][tempLVW[5-3 -:3]-j] & 6'b001_111) == 6'b000_001)//Queen 
+                  isCheck[14] = 1'b1; 	
+                king_flag  = 0; //Break;
+              end
+            end
+            else
+              king_flag = 0;
+          end
+        end
+        king_flag = 1;
+
+        for(j = 1; j < 8; j = j + 1) begin //Upper Right
+          if ((tempLVW[5 -:3] + j < 8) &&(tempLVW[5-3 -:3] + j < 8) && king_flag == 1) begin // If still on board.
+            if ((board[tempLVW[5 -: 3]+j][tempLVW[5-3 -:3] + j] & 6'b110_000) == 6'b110_000) //If next space is white and occupied.
+                king_flag  = 0; //Break;
+            else if ((board[tempLVW[5 -: 3]+j][tempLVW[5-3 -:3] + j] & 6'b110_000) == 6'b100_000) begin//If next space is occupied by black piece.
+                if((board[tempLVW[5 -: 3]+j][tempLVW[5-3 -:3]+j] & 6'b001_111) == 6'b000_011)//Bishop 1 
+                  isCheck[12] = 1'b1;
+                else if((board[tempLVW[5 -: 3]+j][tempLVW[5-3 -:3]+j] & 6'b001_111) == 6'b000_010)//Bishop 2  
+                  isCheck[13] = 1'b1;
+                else if ((board[tempLVW[5 -: 3]+j][tempLVW[5-3 -:3]+j] & 6'b001_111) == 6'b000_001)//Queen 
+                  isCheck[14] = 1'b1; 	
+              king_flag = 0; //Break;
+            end
+          end
+        end
+        king_flag = 1;
+
+
+        for(j = 1; j < 8; j = j +1) begin //Lower Left
+          if(tempLVW[5 -:3] != 0 && tempLVW[5-3 -:3] != 0)begin
+            if ((tempLVW[5 -:3] - j > 0) && (tempLVW[5-3 -:3] - j > 0) && king_flag == 1) begin // If still on board.
+              if ((board[tempLVW[5 -: 3] - j][tempLVW[5-3 -:3] - j] & 6'b110_000) == 6'b110_000) //If next space is white and occupied.
+                king_flag = 0;
+              else if ((board[tempLVW[5 -: 3] - j][tempLVW[5-3 -:3] - j] & 6'b110_000) == 6'b100_000) begin //If next space is occupied by black piece.
+                if((board[tempLVW[5 -: 3]-j][tempLVW[5-3 -:3]-j] & 6'b001_111) == 6'b000_011)//Bishop 1 
+                  isCheck[12] = 1'b1;
+                else if((board[tempLVW[5 -: 3]-j][tempLVW[5-3 -:3]-j] & 6'b001_111) == 6'b000_010)//Bishop 2  
+                  isCheck[13] = 1'b1;
+                else if ((board[tempLVW[5 -: 3]-j][tempLVW[5-3 -:3]-j] & 6'b001_111) == 6'b000_001)//Queen 
+                  isCheck[14] = 1'b1; 
+						king_flag  = 0; //Break;
+              end
+            end
+            else if(((tempLVW[5 -:3] - j == 0) || (tempLVW[5-3 -:3] - j == 0))&& king_flag == 1) begin
+              if ((board[tempLVW[5 -: 3] - j][tempLVW[5-3 -:3] - j] & 6'b110_000) == 6'b110_000) //If next space is white and occupied.
+						king_flag  = 0; //Break;
+              else if ((board[tempLVW[5 -: 3] - j][tempLVW[5-3 -:3] - j] & 6'b110_000) == 6'b100_000) begin //If next space is occupied by black piece.
+                if((board[tempLVW[5 -: 3]-j][tempLVW[5-3 -:3]-j] & 6'b001_111) == 6'b000_011)//Bishop 1 
+                  isCheck[12] = 1'b1;
+                else if((board[tempLVW[5 -: 3]-j][tempLVW[5-3 -:3]-j] & 6'b001_111) == 6'b000_010)//Bishop 2  
+                  isCheck[13] = 1'b1;
+                else if ((board[tempLVW[5 -: 3]-j][tempLVW[5-3 -:3]-j] & 6'b001_111) == 6'b000_001)//Queen 
+                  isCheck[14] = 1'b1; 
+						king_flag  = 0; //Break;
+              end
+              king_flag = 0; //Break;
+            end
+            else
+              king_flag = 0;
+          end
+        end
+        king_flag = 1;
+
+        for(j = 1; j < 8; j = j +1) begin //Lower Right
+          if(tempLVW[5 -:3] != 0)begin
+            if ((tempLVW[5 -:3] - j > 0) && (tempLVW[5-3 -:3] + j < 8) && king_flag == 1) begin // If still on board.
+              if ((board[tempLVW[5 -: 3] - j][tempLVW[5-3 -:3] + j] & 6'b110_000) == 6'b110_000) //If next space is white and occupied.
+              king_flag = 0; //Break;
+              else if ((board[tempLVW[5 -: 3] - j][tempLVW[5-3 -:3] + j] & 6'b110_000) == 6'b100_000)begin //If next space is occupied by black piece.
+                if((board[tempLVW[5 -: 3]-j][tempLVW[5-3 -:3]+j] & 6'b001_111) == 6'b000_011)//Bishop 1 
+                  isCheck[12] = 1'b1;
+                else if((board[tempLVW[5 -: 3]-j][tempLVW[5-3 -:3]+j] & 6'b001_111) == 6'b000_010)//Bishop 2  
+                  isCheck[13] = 1'b1;
+                else if ((board[tempLVW[5 -: 3]-j][tempLVW[5-3 -:3]+j] & 6'b001_111) == 6'b000_001)//Queen 
+                  isCheck[14] = 1'b1; 
+						king_flag  = 0; //Break;
+              end
+            end
+            else if((tempLVW[5 -:3] - j == 0)&& king_flag == 1) begin
+              if ((board[tempLVW[5 -: 3] - j][tempLVW[5-3 -:3] + j] & 6'b110_000) == 6'b110_000) //If next space is not occupied.
+              king_flag = 0; //Break;
+              else if ((board[tempLVW[5 -: 3] - j][tempLVW[5-3 -:3] + j] & 6'b110_000) == 6'b110_000) begin //If next space is occupied by black piece.
+                if((board[tempLVW[5 -: 3]-j][tempLVW[5-3 -:3]+j] & 6'b001_111) == 6'b000_011)//Bishop 1 
+                  isCheck[12] = 1'b1;
+                else if((board[tempLVW[5 -: 3]-j][tempLVW[5-3 -:3]+j] & 6'b001_111) == 6'b000_010)//Bishop 2  
+                  isCheck[13] = 1'b1;
+                else if ((board[tempLVW[5 -: 3]-j][tempLVW[5-3 -:3]+j] & 6'b001_111) == 6'b000_001)//Queen 
+                  isCheck[14] = 1'b1; 
+						king_flag  = 0; //Break;
+              end
+              king_flag = 0; //Break;
+            end
+            else
+              king_flag = 0;
+          end
+        end
+        king_flag = 1;
 
       end // Alive Vector End
-	end
+    end
+	 
 endmodule
 
