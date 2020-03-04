@@ -1,15 +1,15 @@
-module generateMoves(clock,
-                     reset,
+module generateMoves(reset,
                      enable,
                      player,
                      locationVectorWhite,
                      locationVectorBlack,
                      aliveVectorWhite,
                      aliveVectorBlack,
+							isCheck,
+							isCheckDir,
                      moveSet,
 							intdebug,
 							bitdebug);
-    input clock;
     input reset;
     input enable;
     input player;
@@ -17,11 +17,12 @@ module generateMoves(clock,
     input [95: 0]locationVectorBlack;
     input [15: 0]aliveVectorWhite;
     input [15: 0]aliveVectorBlack;
+    input [15: 0]isCheck;
+    input [7: 0]isCheckDir;
     output reg [127: 0]moveSet;
 	 output reg [127: 0]bitdebug;
     output integer intdebug;
 
-    wire clock;
     wire reset;
     wire enable;
     
