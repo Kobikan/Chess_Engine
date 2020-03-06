@@ -157,7 +157,7 @@ initial begin
 	king_piece[6] <= 8'b01_11_11_10;
 	king_piece[7] <= 8'b00_00_00_00;
 	
-	player <= 1'b0;
+	player <= 1'b1;
 	
 //	cursor <= 6'b100_100;
 end
@@ -214,7 +214,7 @@ always @(posedge clk12) begin
 	end
 	else begin
 		cDISP <= 1'b1;
-		if (player == 1'b1) begin
+		if (player == 1'b0) begin
 			cBGR = 24'hFF_FF_FF;
 		end
 		else begin	
