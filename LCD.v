@@ -252,7 +252,7 @@ always @(posedge clk12) begin
 	end
 	else begin
 		cDISP <= 1'b1;
-		if (player == 1'b1) begin
+		if (player == 1'b0) begin
 			cBGR = 24'hFF_FF_FF;
 		end
 		else begin	
