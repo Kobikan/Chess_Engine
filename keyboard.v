@@ -59,6 +59,7 @@ module keyboard (clk50, PS2_CLK, PS2_DAT, scan_ready, scan_code1, scan_code2, sc
 		case(state)
 			START:
 				begin
+					scan_ready <= 1'b0;
 					if (PS2_FDAT == 1'b1)
 						state <= START;
 					else
@@ -66,7 +67,6 @@ module keyboard (clk50, PS2_CLK, PS2_DAT, scan_ready, scan_code1, scan_code2, sc
 				end
 			CLK_LO1:
 				begin
-					scan_ready <= 1'b0;
 					if (bits_read < 4'hB) begin
 						if (PS2_FCLK != 1'b0)
 							state <= CLK_LO1;
@@ -124,8 +124,8 @@ module keyboard (clk50, PS2_CLK, PS2_DAT, scan_ready, scan_code1, scan_code2, sc
 					if (bits_read < 4'hB) begin
 						if (PS2_FCLK != 1'b0)
 							state <= CLK_LO3;
-							if (exit_count_fin)
-								state <= SCAN3;
+//							if (exit_count_fin)
+//								state <= SCAN3;
 						else begin
 							state <= CLK_HI3;
 							bitstream3 <= {PS2_FDAT, bitstream3[10:1]};

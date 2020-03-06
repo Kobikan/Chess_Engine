@@ -1,31 +1,28 @@
 `timescale 1 ns / 1 ps
 
-module top_level(clk50, reset_kb, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, led0, DRAM_ADDR, DRAM_BA, DRAM_CAS_N, DRAM_RAS_N, DRAM_CLK, DRAM_UDQM, DRAM_LDQM, DRAM_DQ, DRAM_CKE, DRAM_CS_N, DRAM_WE_N);
-	input reset_kb, clk50, PS2_CLK, PS2_DAT, dbg_sw1;
+module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR, GPIO_0);
+	input clk50, PS2_CLK, PS2_DAT, dbg_sw1;
 	output[6:0] seg0, seg1, seg2, seg3;
-	output led0;
-	output [12:0] DRAM_ADDR;
-	output [1:0] DRAM_BA;
-	output DRAM_CAS_N, DRAM_RAS_N, DRAM_CLK;
-	output DRAM_CKE, DRAM_CS_N, DRAM_WE_N;
-	output DRAM_UDQM;
-	output DRAM_LDQM;
-	
-	inout [15:0] DRAM_DQ;
+	output reg [10:0] LEDR;
+	output[27:0] GPIO_0;
 	
 	parameter __UP = 8'h1D;
 	parameter __DOWN = 8'h1B;
 	parameter __LEFT = 8'h1C;
 	parameter __RIGHT = 8'h23;
-	parameter ENTER = 8'h5A;
-	parameter ESC = 8'h76;
+	parameter __ENTER = 8'h5A;
+	parameter __ESC = 8'h76;
 	
 	reg[15:0] kb_code, seg_code;
 	reg enable_PS2;
 	reg[1:0] state;
 	reg clk25;
 	reg check_ext;
-	reg led0;
+	
+	reg cursor_moved;
+	reg __ENTER_pressed, __ESC_pressed;
+	reg [2:0] x_cursor, y_cursor;
+	wire [5:0] PS2_cursor;
 	
 	//For keyboard.v
 	wire[7:0] scanned_code1, scanned_code2, scanned_code3;
@@ -52,6 +49,17 @@ module top_level(clk50, reset_kb, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, s
 	wire [2:0] possible_move_K;
 	wire done_checking;
 	
+	//For LCD outputs
+	wire [23:0] LCD_BGR_Out;
+	wire LCD_HSYNC, LCD_VSYNC, LCD_CLK, LCD_DISP;
+	
+	assign GPIO_0[0] = LCD_CLK;
+	assign GPIO_0[24:1] = LCD_BGR_Out;
+	assign GPIO_0[25] = LCD_DISP;
+	assign GPIO_0[26] = LCD_HSYNC;
+	assign GPIO_0[27] = LCD_VSYNC;
+	assign PS2_cursor = {y_cursor, x_cursor};
+	
 	keyboard keybd( 
 		.clk50(clk50),
 		.PS2_CLK(PS2_CLK), 
@@ -72,47 +80,53 @@ module top_level(clk50, reset_kb, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, s
 	);
 	
 	nios_system NiosII (
-		.clk_1_clk(clk50),
-		.sdram_wire_addr(DRAM_ADDR),
-		.sdram_wire_ba(DRAM_BA),
-		.sdram_wire_cas_n(DRAM_CAS_N),
-		.sdram_wire_cke(DRAM_CKE),
-		.sdram_wire_cs_n(DRAM_CS_N),
-		.sdram_wire_dq(DRAM_DQ),
-		.sdram_wire_dqm({DRAM_UDQM,DRAM_LDQM}),
-		.sdram_wire_ras_n(DRAM_RAS_N),
-		.sdram_wire_we_n(DRAM_WE_N),
-		.reset_reset(~dbg_sw1),
-		.sdram_clk_clk(DRAM_CLK)
+		.lcd_clk_outclk0_clk (LCD_CLK), // lcd_clk_outclk0.clk
+		.lcd_clk_refclk_clk  (clk50),  //  lcd_clk_refclk.clk
+		.lcd_clk_reset_reset (dbg_sw1)  //   lcd_clk_reset.reset
 	);
-	
-	AI_Engine engine (
-		.clk(clk50), 
-		.pl(player), 
-		.en(enable_engine),
-		.RST(~dbg_sw1),
-		.location_vectors_w(loc_vec_w),
-		.location_vectors_b(loc_vec_b), 
-		.alive_vectors_w(alive_vec_w),
-		.alive_vectors_b(alive_vec_b),
-		.piece_to_move(decision_piece_ID),
-		.output_move(decision_loc), 
-		.done(finish), 
-		.move_vec_P(possible_move_P), 
-		.move_vec_R(possible_move_R), 
-		.move_vec_N(possible_move_N), 
-		.move_vec_B(possible_move_B), 
-		.move_vec_Q(possible_move_Q), 
-		.move_vec_K(possible_move_K), 
-		.pieceId(piece_ID), 
-		.ready(pos_ready),
-		.end_moves(done_checking)
-	);
+//	
+//	AI_Engine engine (
+//		.clk(clk50), 
+//		.pl(player), 
+//		.en(enable_engine),
+//		.RST(~dbg_sw1),
+//		.location_vectors_w(loc_vec_w),
+//		.location_vectors_b(loc_vec_b), 
+//		.alive_vectors_w(alive_vec_w),
+//		.alive_vectors_b(alive_vec_b),
+//		.piece_to_move(decision_piece_ID),
+//		.output_move(decision_loc), 
+//		.done(finish), 
+//		.move_vec_P(possible_move_P), 
+//		.move_vec_R(possible_move_R), 
+//		.move_vec_N(possible_move_N), 
+//		.move_vec_B(possible_move_B), 
+//		.move_vec_Q(possible_move_Q), 
+//		.move_vec_K(possible_move_K), 
+//		.pieceId(piece_ID), 
+//		.ready(pos_ready),
+//		.end_moves(done_checking)
+//	);
 
-	
+	LCD display(
+		.clk12(LCD_CLK),
+		.DISP(LCD_DISP),
+		.BGR(LCD_BGR_Out),
+		.HSYNC(LCD_HSYNC),
+		.VSYNC(LCD_VSYNC),
+		.reset(dbg_sw1),
+		.cursor(PS2_cursor),
+		.enter_pressed(__ENTER_pressed),
+		.esc_pressed(__ESC_pressed)
+	);
 
 	initial begin
-		led0 <= 1'b0;
+		LEDR[0] <= 1'b0;
+		x_cursor <= 3'b000;
+		y_cursor <= 3'b001;
+		__ENTER_pressed <= 1'b0;
+		__ESC_pressed <= 1'b0;
+		cursor_moved <= 1'b0;
 	end
 	
 	always @(posedge clk50) begin //Clk divider by 2.
@@ -130,14 +144,70 @@ module top_level(clk50, reset_kb, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, s
 				end
 			end
 		end
+		else begin
+			if (dbg_sw1) begin
+				seg_code <= 16'hABCD;
+			end
+			else begin 
+				seg_code <= 16'hDCBA;
+			end
+		end
 	end
 
 	always @(posedge clk25) begin
-		if (scan_ready && (scanned_code1 == __UP || scanned_code1 == __DOWN || scanned_code1 == __LEFT || scanned_code1 == __RIGHT || scanned_code1 == ENTER || scanned_code1 == ESC || (scanned_code2 == __UP || scanned_code2 == __DOWN || scanned_code2 == __LEFT || scanned_code2 == __RIGHT || scanned_code2 == ENTER || scanned_code2 == ESC))) begin
-			led0 <= 1'b1;
+		if (dbg_sw1) begin
+			x_cursor <= 3'b000;
+			y_cursor <= 3'b001;
 		end
 		else begin
-			led0 <= 1'b0;
+			if (scan_ready && cursor_moved == 1'b0) begin
+				cursor_moved <= 1'b1;
+				if (scanned_code1 == __UP || scanned_code2 == __UP) begin
+					if (y_cursor < 3'b111) begin
+						y_cursor <= y_cursor + 3'b001;
+					end
+				end
+				else begin
+					if (scanned_code1 == __DOWN || scanned_code2 == __DOWN) begin
+						if (y_cursor > 3'b000) begin
+							y_cursor <= y_cursor - 3'b001;
+						end
+					end
+					else begin
+						if (scanned_code1 == __LEFT || scanned_code2 == __LEFT) begin
+							if (x_cursor > 3'b000) begin
+								x_cursor <= x_cursor - 3'b001;
+							end
+						end
+						else begin
+							if (scanned_code1 == __RIGHT || scanned_code2 == __RIGHT) begin
+								if (x_cursor < 3'b111) begin
+									x_cursor <= x_cursor + 3'b001;
+								end
+							end
+							else begin
+								if (scanned_code1 == __ENTER || scanned_code2 == __ENTER) begin
+									__ENTER_pressed <= 1'b1;	
+								end
+								else begin
+									if (scanned_code1 == __ESC || scanned_code2 == __ESC) begin
+											__ESC_pressed <= 1'b1;
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+			else begin
+				cursor_moved <= 1'b0;
+			end
+			
+			if (__ESC_pressed == 1'b1) begin
+				__ENTER_pressed <= 1'b0;
+				__ESC_pressed <= 1'b0;
+			end
+									
 		end
 	end
 
