@@ -86,6 +86,9 @@ module board_update_v (clk, RST, en, player, move_input, piece_number, location_
 				if (en_q) begin
 					state_d = UPDATE;
 				end
+				else if (RST) begin
+					output_player_d = player;
+				end
 				else begin
 					state_d = RESET;
 					done_d = 0;
@@ -338,7 +341,7 @@ module board_update_v (clk, RST, en, player, move_input, piece_number, location_
 			piece_number_q <= K1;
 			move_input_q <= 0;
 			en_q <= 0;
-			output_player_q <= BLACK;
+			output_player_q <= WHITE;
 		end
 		else begin
 			location_vectors_w_q <= location_vectors_w_d;
