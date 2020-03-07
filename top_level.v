@@ -46,6 +46,7 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 	//For IO to BoardUpdate.v
 	wire [5:0] next_move;
 	wire [3:0] pid;
+	wire piece_under;
 	
 	//For BoardUpdate General Output
 	wire [95:0] lvw_bu;
@@ -157,7 +158,8 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 		.avb(avb_bu),
 		.avw(avw_bu),
 		.player_in(player_bu),
-		.pid(pid)
+		.pid(pid),
+		.found_piece(piece_under)
 	);
 
 	initial begin
@@ -231,12 +233,16 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 							end
 							else begin
 								if (scanned_code1 == __ENTER || scanned_code2 == __ENTER) begin
-									if (__ENTER_pressed == 1'b1) begin
-										__CONFIRM_pressed<= 1'b1;
+									if (__ENTER_pressed == 1'b1 ) begin
+										if (piece_under == 1'b1) begin
+											__CONFIRM_pressed<= 1'b1;
+										end
+										else begin
+											__ENTER_pressed <=1'b0;
+										end
 									end
 									else begin
 										__ENTER_pressed <= 1'b1;
-										
 									end	
 								end
 								else begin

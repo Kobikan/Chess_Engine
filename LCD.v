@@ -1,6 +1,6 @@
 `timescale 1 ns / 1 ps
 
-module LCD(clk12, reset, BGR, HSYNC, VSYNC, DISP, cursor, enter_pressed, esc_pressed, confirm_pressed, lvb, lvw, avb, avw, player_in, pid);
+module LCD(clk12, reset, BGR, HSYNC, VSYNC, DISP, cursor, enter_pressed, esc_pressed, confirm_pressed, lvb, lvw, avb, avw, player_in, pid, found_piece);
 input clk12, reset, enter_pressed, esc_pressed, confirm_pressed;
 input [5:0] cursor;
 input [95:0] lvw, lvb;
@@ -9,6 +9,7 @@ input player_in;
 output wire [23:0] BGR;
 output wire HSYNC, VSYNC, DISP;
 output reg [3:0] pid;
+output reg found_piece;
 
 parameter RESET = 2'b00;
 parameter SEND_LINE = 2'b01;
@@ -54,6 +55,7 @@ wire player;
 reg[95:0] BLACK    = 96'b101111_101110_101101_101100_101011_101010_101001_101000_100111_100110_100101_100100_100011_100010_100001_100000;
 reg[95:0] WHITE    = 96'b111111_111110_111101_111100_111011_111010_111001_111000_110111_110110_110101_110100_110011_110010_110001_110000;
 reg[5:0] temppid = 6'b000000;
+reg tempPieceUnder = 1'b0;
 
 
 reg [1:0] state = RESET;
@@ -223,7 +225,27 @@ always @(posedge clk12) begin
   end
 end
 
-//Send board
+//Send 
+always @(posedge enter_pressed) begin
+	tempPieceUnder = 1'b0;
+	for(i = 95; i > 0; i = i-6) begin
+			if (alive_vectors_w[i/6]) begin
+				if(location_vectors_w[i -: 6] == cursor && (enter_pressed && confirm_pressed == 1'b0)) begin
+					temppid = WHITE[i -: 6];
+					tempPieceUnder = 1'b1;
+				end
+			end
+			if (alive_vectors_b[i/6]) begin
+				if(location_vectors_b[i -: 6] == cursor && (enter_pressed && confirm_pressed == 1'b0)) begin
+					temppid = BLACK[i -: 6];
+					tempPieceUnder = 1'b1;
+				end
+			end
+	end
+	found_piece = tempPieceUnder;
+	pid = temppid[3:0];
+end
+
 always @(posedge clk12) begin
 	if(reset) begin
 		cDISP <= 1'b0;
@@ -238,19 +260,19 @@ always @(posedge clk12) begin
 		end
 		
 		// Checking PID
-		for(i = 95; i > 0; i = i-6) begin
-			if (alive_vectors_w[i/6]) begin
-				if(location_vectors_w[i -: 6] == cursor && (enter_pressed && confirm_pressed == 1'b0)) begin
-					temppid = WHITE[i -: 6];
-				end
-			end
-			if (alive_vectors_b[i/6]) begin
-				if(location_vectors_b[i -: 6] == cursor && (enter_pressed && confirm_pressed == 1'b0)) begin
-					temppid = BLACK[i -: 6];
-				end
-			end
-		end
-		pid = temppid[3:0];
+//		for(i = 95; i > 0; i = i-6) begin
+//			if (alive_vectors_w[i/6]) begin
+//				if(location_vectors_w[i -: 6] == cursor && (enter_pressed && confirm_pressed == 1'b0)) begin
+//					temppid = WHITE[i -: 6];
+//				end
+//			end
+//			if (alive_vectors_b[i/6]) begin
+//				if(location_vectors_b[i -: 6] == cursor && (enter_pressed && confirm_pressed == 1'b0)) begin
+//					temppid = BLACK[i -: 6];
+//				end
+//			end
+//		end
+//		pid = temppid[3:0];
 		
 		
 //
