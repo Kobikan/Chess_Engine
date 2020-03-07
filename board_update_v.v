@@ -88,6 +88,7 @@ module board_update_v (clk, RST, en, player, move_input, piece_number, location_
 				end
 				else begin
 					state_d = RESET;
+					output_player_d = player;
 					done_d = 0;
 					counter_locations = P1;
 				end
@@ -338,7 +339,7 @@ module board_update_v (clk, RST, en, player, move_input, piece_number, location_
 			piece_number_q <= K1;
 			move_input_q <= 0;
 			en_q <= 0;
-			output_player_q <= BLACK;
+			output_player_q <= WHITE;
 		end
 		else begin
 			location_vectors_w_q <= location_vectors_w_d;

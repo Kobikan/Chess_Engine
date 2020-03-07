@@ -1,10 +1,14 @@
 `timescale 1 ns / 1 ps
 
-module LCD(clk12, reset, BGR, HSYNC, VSYNC, DISP, cursor, enter_pressed, esc_pressed);
-input clk12, reset, enter_pressed, esc_pressed;
+module LCD(clk12, reset, BGR, HSYNC, VSYNC, DISP, cursor, enter_pressed, esc_pressed, confirm_pressed, lvb, lvw, avb, avw, player_in, pid);
+input clk12, reset, enter_pressed, esc_pressed, confirm_pressed;
 input [5:0] cursor;
+input [95:0] lvw, lvb;
+input [15:0] avw, avb;
+input player_in;
 output wire [23:0] BGR;
 output wire HSYNC, VSYNC, DISP;
+output reg [3:0] pid;
 
 parameter RESET = 2'b00;
 parameter SEND_LINE = 2'b01;
@@ -31,10 +35,10 @@ parameter borderWidth = 4;
 reg board[7:0][7:0];
 
 //reg [5:0] cursor;
-reg [95:0] location_vectors_w;
-reg [95:0] location_vectors_b;
-reg [15:0] alive_vectors_w;
-reg [15:0] alive_vectors_b;
+wire [95:0] location_vectors_w;
+wire [95:0] location_vectors_b;
+wire [15:0] alive_vectors_w;
+wire [15:0] alive_vectors_b;
 
 reg [7:0] pawn_w_piece [7:0];
 reg [7:0] pawn_b_piece [7:0];
@@ -46,7 +50,11 @@ reg [7:0] king_piece [7:0];
 	
 reg[7:0] local_piece;
 
-reg player;
+wire player;
+reg[95:0] BLACK    = 96'b101111_101110_101101_101100_101011_101010_101001_101000_100111_100110_100101_100100_100011_100010_100001_100000;
+reg[95:0] WHITE    = 96'b111111_111110_111101_111100_111011_111010_111001_111000_110111_110110_110101_110100_110011_110010_110001_110000;
+reg[5:0] temppid = 6'b000000;
+
 
 reg [1:0] state = RESET;
 integer hCount = 0;
@@ -86,10 +94,10 @@ initial begin
 //	board[2][6] = 1'b1;
 //	reg_i = 3'b000;
 //	reg_j = 3'b000;
-	location_vectors_w <= 96'h20928B30D38F0070460850C4;
-	location_vectors_b <= 96'hC31CB3D35DB7E3FE7EEBDEFC;
-	alive_vectors_w <= 16'hFFFF;
-	alive_vectors_b <= 16'hFFFF;
+	//location_vectors_w <= 96'h20928B30D38F0070460850C4;
+	//location_vectors_b <= 96'hC31CB3D35DB7E3FE7EEBDEFC;
+	//alive_vectors_w <= 16'hFFFF;
+	//alive_vectors_b <= 16'hFFFF;
 	i <= 95;
 	j <= 15;
 
@@ -157,10 +165,18 @@ initial begin
 	king_piece[6] <= 8'b01_11_11_10;
 	king_piece[7] <= 8'b00_00_00_00;
 	
-	player <= 1'b1;
+//	player <= 1'b1;
 	
 //	cursor <= 6'b100_100;
 end
+
+	
+assign alive_vectors_w = avw;
+assign alive_vectors_b = avb;
+assign player = player_in;
+assign location_vectors_w = lvw;
+assign location_vectors_b = lvb;
+	
 
 //Increment hCount and VCount values
 always @(posedge clk12) begin
@@ -220,6 +236,22 @@ always @(posedge clk12) begin
 		else begin	
 			cBGR = 24'h00_00_00;
 		end
+		
+		// Checking PID
+		for(i = 95; i > 0; i = i-6) begin
+			if (alive_vectors_w[i/6]) begin
+				if(location_vectors_w[i -: 6] == cursor && (enter_pressed && confirm_pressed == 1'b0)) begin
+					temppid = WHITE[i -: 6];
+				end
+			end
+			if (alive_vectors_b[i/6]) begin
+				if(location_vectors_b[i -: 6] == cursor && (enter_pressed && confirm_pressed == 1'b0)) begin
+					temppid = BLACK[i -: 6];
+				end
+			end
+		end
+		pid = temppid[3:0];
+		
 		
 //
 		if ((vCount <= 4 || vCount >= (vImage_Area - 4)) && (hCount > 104 && hCount < 376)) begin
