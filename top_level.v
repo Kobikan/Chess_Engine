@@ -42,6 +42,7 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 	//For BoardUpdate.v -> GameLogic.v
 	wire done_bu;
 	wire player_bu;
+
 	
 	//For IO to BoardUpdate.v
 	wire [5:0] next_move;
@@ -54,7 +55,7 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 	wire [15:0] avw_bu;
 	wire [15:0] avb_bu;
 	
-	//For Game_logic.v -> AI_Engine.v
+	//For Game_logic.v -> AI_Engine.v or IO
 	wire piece_ID;
 	wire pos_ready;
 	wire [1:0] possible_move_P; 
@@ -63,7 +64,8 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 	wire [2:0] possible_move_B;
 	wire [5:0] possible_move_Q;
 	wire [2:0] possible_move_K;
-	wire done_checking;
+	wire [127:0] moveSet_gm;
+	wire done_gm;
 	
 	//For LCD outputs
 	wire [23:0] LCD_BGR_Out;
@@ -139,7 +141,23 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 		.output_player(player_bu),
 		.done(done_bu)
 	);
+	
+	generateMoves genMoves(
+							.clock(clk50),
+                     .reset(dbg_sw1),
+                     .enable(done_bu),
+                     .player(player_bu),
+                     .locationVectorWhite(lvw_bu),
+                     .locationVectorBlack(lvb_bu),
+                     .aliveVectorWhite(avw_bu),
+                     .aliveVectorBlack(avb_bu),
+                     .moveSet(moveSet_gm),
+							.intdebug(),
+							.bitdebug(), 
+							.done_gm(done_gm)
+						);
 
+	
 	LCD display(
 		//ADD LV,AV, output_player as input to LCD
 		//ADD move_output and pid as output from LCD
@@ -150,6 +168,7 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 		.VSYNC(LCD_VSYNC),
 		.reset(dbg_sw1),
 		.cursor(PS2_cursor),
+		.en(done_gm),
 		.enter_pressed(__ENTER_pressed),
 		.esc_pressed(__ESC_pressed),
 		.confirm_pressed(__CONFIRM_pressed),
@@ -159,7 +178,8 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 		.avw(avw_bu),
 		.player_in(player_bu),
 		.pid(pid),
-		.found_piece(piece_under)
+		.found_piece(piece_under),
+		.moveSet(moveSet_gm)
 	);
 
 	initial begin
