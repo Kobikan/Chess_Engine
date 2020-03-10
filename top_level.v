@@ -12,7 +12,7 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 	parameter __RIGHT = 8'h23;
 	parameter __ENTER = 8'h5A;
 	parameter __ESC = 8'h76;
-	
+
 	reg[15:0] kb_code, seg_code;
 	reg enable_PS2;
 	reg[1:0] state;
@@ -21,6 +21,7 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 	
 	reg cursor_moved;
 	reg __ENTER_pressed, __ESC_pressed;
+	reg __CONFIRM_pressed;
 	reg [2:0] x_cursor, y_cursor;
 	wire [5:0] PS2_cursor;
 	
@@ -37,6 +38,21 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 	wire [3:0] decision_piece_ID;
 	wire [5:0] decision_loc;
 	wire finish;
+	
+	//For BoardUpdate.v -> GameLogic.v
+	wire done_bu;
+	wire player_bu;
+	
+	//For IO to BoardUpdate.v
+	wire [5:0] next_move;
+	wire [3:0] pid;
+	wire piece_under;
+	
+	//For BoardUpdate General Output
+	wire [95:0] lvw_bu;
+	wire [95:0] lvb_bu;
+	wire [15:0] avw_bu;
+	wire [15:0] avb_bu;
 	
 	//For Game_logic.v -> AI_Engine.v
 	wire piece_ID;
@@ -107,8 +123,26 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 //		.ready(pos_ready),
 //		.end_moves(done_checking)
 //	);
+	
+	board_update_v board_upd(
+		.clk(clk50),
+		.RST(dbg_sw1),
+		.en(__CONFIRM_pressed),
+		.player(player_bu),
+		.move_input(PS2_cursor),
+		.piece_number(pid),
+		.location_vectors_w(lvw_bu),
+		.location_vectors_b(lvb_bu),
+		.alive_vectors_w(avw_bu),
+		.alive_vectors_b(avb_bu),
+		.dbg_state(),
+		.output_player(player_bu),
+		.done(done_bu)
+	);
 
 	LCD display(
+		//ADD LV,AV, output_player as input to LCD
+		//ADD move_output and pid as output from LCD
 		.clk12(LCD_CLK),
 		.DISP(LCD_DISP),
 		.BGR(LCD_BGR_Out),
@@ -117,7 +151,15 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 		.reset(dbg_sw1),
 		.cursor(PS2_cursor),
 		.enter_pressed(__ENTER_pressed),
-		.esc_pressed(__ESC_pressed)
+		.esc_pressed(__ESC_pressed),
+		.confirm_pressed(__CONFIRM_pressed),
+		.lvb(lvb_bu),
+		.lvw(lvw_bu),
+		.avb(avb_bu),
+		.avw(avw_bu),
+		.player_in(player_bu),
+		.pid(pid),
+		.found_piece(piece_under)
 	);
 
 	initial begin
@@ -160,6 +202,10 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 			y_cursor <= 3'b001;
 		end
 		else begin
+			if (__CONFIRM_pressed == 1'b1) begin
+				__ENTER_pressed <= 1'b0;
+				__CONFIRM_pressed <= 1'b0;
+			end
 			if (scan_ready && cursor_moved == 1'b0) begin
 				cursor_moved <= 1'b1;
 				if (scanned_code1 == __UP || scanned_code2 == __UP) begin
@@ -187,7 +233,17 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 							end
 							else begin
 								if (scanned_code1 == __ENTER || scanned_code2 == __ENTER) begin
-									__ENTER_pressed <= 1'b1;	
+									if (__ENTER_pressed == 1'b1 ) begin
+										if (piece_under == 1'b1) begin
+											__CONFIRM_pressed<= 1'b1;
+										end
+										else begin
+											__ENTER_pressed <=1'b0;
+										end
+									end
+									else begin
+										__ENTER_pressed <= 1'b1;
+									end	
 								end
 								else begin
 									if (scanned_code1 == __ESC || scanned_code2 == __ESC) begin
@@ -202,7 +258,6 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 			else begin
 				cursor_moved <= 1'b0;
 			end
-			
 			if (__ESC_pressed == 1'b1) begin
 				__ENTER_pressed <= 1'b0;
 				__ESC_pressed <= 1'b0;
