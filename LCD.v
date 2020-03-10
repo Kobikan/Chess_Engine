@@ -1,15 +1,19 @@
 `timescale 1 ns / 1 ps
 
-module LCD(clk12, reset, BGR, HSYNC, VSYNC, DISP, cursor, enter_pressed, esc_pressed, confirm_pressed, lvb, lvw, avb, avw, player_in, pid, found_piece);
+module LCD(clk12, reset, BGR, HSYNC, VSYNC, DISP, cursor, enter_pressed, esc_pressed, en, confirm_pressed, lvb, lvw, avb, avw, 
+player_in, pid, found_piece, moveSet);
 input clk12, reset, enter_pressed, esc_pressed, confirm_pressed;
 input [5:0] cursor;
 input [95:0] lvw, lvb;
 input [15:0] avw, avb;
 input player_in;
+input en;
+input [127:0] moveSet;
 output wire [23:0] BGR;
 output wire HSYNC, VSYNC, DISP;
 output reg [3:0] pid;
 output reg found_piece;
+
 
 parameter RESET = 2'b00;
 parameter SEND_LINE = 2'b01;
@@ -32,7 +36,25 @@ parameter startUpMax = 16;
 //Board
 parameter pxWidth = 33;
 parameter borderWidth = 4;
-//(8-row)*pxWidth, (8-col)*pxWidth
+
+//definition of piece id
+parameter P1 = 4'b1111;
+parameter P2 = 4'b1110;
+parameter P3 = 4'b1101;
+parameter P4 = 4'b1100;
+parameter P5 = 4'b1011;
+parameter P6 = 4'b1010;
+parameter P7 = 4'b1001;
+parameter P8 = 4'b1000;
+parameter R1 = 4'b0111;
+parameter R2 = 4'b0110;
+parameter N1 = 4'b0101;
+parameter N2 = 4'b0100;
+parameter B1 = 4'b0011;
+parameter B2 = 4'b0010;
+parameter Q1 = 4'b0001;
+parameter K1 = 4'b0000;
+
 reg board[7:0][7:0];
 
 //reg [5:0] cursor;
@@ -40,6 +62,7 @@ wire [95:0] location_vectors_w;
 wire [95:0] location_vectors_b;
 wire [15:0] alive_vectors_w;
 wire [15:0] alive_vectors_b;
+wire [127:0] ms_in;
 
 reg [7:0] pawn_w_piece [7:0];
 reg [7:0] pawn_b_piece [7:0];
@@ -67,6 +90,8 @@ reg hS, vS;
 reg [23:0] cBGR;
 reg cDISP;
 
+reg [6:0] cursor_colour[31:0] ;
+
 assign HSYNC = hS;
 assign VSYNC = vS;
 assign DISP = cDISP; //1: ON, 0: OFF
@@ -74,7 +99,7 @@ assign BGR = cBGR;
 //reg pawn_w[1023:0];
 
 //reg done = 1'b1;
-integer i, j;
+integer i, j, index;
 //reg [2:0] reg_i, reg_j;
 
 //reg [12:0] pawn_w_addr;
@@ -178,6 +203,8 @@ assign alive_vectors_b = avb;
 assign player = player_in;
 assign location_vectors_w = lvw;
 assign location_vectors_b = lvb;
+assign ms_in = moveSet;
+
 	
 
 //Increment hCount and VCount values
@@ -225,8 +252,355 @@ always @(posedge clk12) begin
   end
 end
 
+always @(posedge en) begin
+//initialize player colouring
+	for (i = 31; i >= 0 ; i=i -1) begin
+		cursor_colour[i] = 7'b0000000;
+	end
+case (temppid[3:0]) 
+		P1: begin
+		if (player == 1'b1) begin
+			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+		end
+		else begin
+			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+		end
+		end
+		P2: begin
+		if (player == 1'b1) begin
+			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+		end
+		else begin
+			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+		end
+		end
+		P3: begin
+		if (player == 1'b1) begin
+			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+		end
+		else begin
+			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+		end
+		end
+		P4: begin
+		if (player == 1'b1) begin
+			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+		end
+		else begin
+			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+		end
+		end
+		P5: begin
+		if (player == 1'b1) begin
+			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+		end
+		else begin
+			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+		end
+		end
+		P6: begin
+		if (player == 1'b1) begin
+			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+		end
+		else begin
+			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+		end
+		end
+		P7: begin
+		if (player == 1'b1) begin
+			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+		end
+		else begin
+			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+		end
+		end
+		P8: begin
+		if (player == 1'b1) begin
+			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+		end
+		else begin
+			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+		end
+		end
+		R1: begin
+//			index = 0;
+//			for (i=ms_in[95 -: 3] ; i>0 ; i=i-1) begin
+//				cursor_colour[index] = {1'b1, cursor[5:3], cursor[2:0] + (3'b001*i)};
+//				index = index+1;
+//			end
+//			for (i=ms_in[92 -: 3] ; i>0 ; i=i-1) begin
+//				cursor_colour[index] = {1'b1, cursor[5:3], cursor[2:0] - (3'b001*i)};
+//				index = index+1;
+//			end
+//			for (i=ms_in[89 -: 3] ; i>0 ; i=i-1) begin
+//				cursor_colour[index] = {1'b1, cursor[5:3] + (3'b001*i), cursor[2:0]};
+//				index = index+1;
+//			end
+//			for (i=ms_in[86 -: 3] ; i>0 ; i=i-1) begin
+//				cursor_colour[index] = {1'b1, cursor[5:3] - (3'b001*i), cursor[2:0]};
+//				index = index+1;
+//			end
+		end
+		R2: begin
+		end
+		N1: begin
+		end
+		N2: begin
+		end
+		B1: begin
+		end
+		B2: begin
+		end
+		Q1: begin
+		end
+		K1: begin
+		end
+	endcase
+end
+
 //Send 
 always @(posedge enter_pressed) begin
+	//find piece
 	tempPieceUnder = 1'b0;
 	for(i = 95; i > 0; i = i-6) begin
 			if (alive_vectors_w[i/6]) begin
@@ -244,6 +618,7 @@ always @(posedge enter_pressed) begin
 	end
 	found_piece = tempPieceUnder;
 	pid = temppid[3:0];
+	//decode move set
 end
 
 always @(posedge clk12) begin
@@ -252,7 +627,7 @@ always @(posedge clk12) begin
 	end
 	else begin
 		cDISP <= 1'b1;
-		if (player == 1'b0) begin
+		if (player == 1'b1) begin
 			cBGR = 24'hFF_FF_FF;
 		end
 		else begin	
@@ -301,6 +676,18 @@ always @(posedge clk12) begin
 						end
 						else begin
 							cBGR = 24'h3A_99_72;
+						end
+					end
+					
+					for (i=31 ; i>=0 ; i = i-1) begin
+						if (enter_pressed == 1'b1) begin	
+							if ((cursor_colour[i] & 7'b1000000) == 7'b1000000) begin //means the loc should be coloured
+								if ((vCount >= (7 - cursor_colour[i][5 -:3])*pxWidth + 4) && (vCount < (8 - cursor_colour[i][5 -:3])*pxWidth + 4)
+								&& (hCount >= (cursor_colour[i][(5 - 3) -: 3]*pxWidth + 108)) && (hCount < ((cursor_colour[i][(5 - 3) -: 3] + 1)*pxWidth + 108))) begin
+									cBGR <= 24'hFF_80_00;
+								end
+								
+							end
 						end
 					end
 					
