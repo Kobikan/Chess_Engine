@@ -67,6 +67,8 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 	wire [127:0] moveSet_gm;
 	wire done_gm;
 	
+	wire init_begin_lcd;
+	
 	//For LCD outputs
 	wire [23:0] LCD_BGR_Out;
 	wire LCD_HSYNC, LCD_VSYNC, LCD_CLK, LCD_DISP;
@@ -154,7 +156,8 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
                      .moveSet(moveSet_gm),
 							.intdebug(),
 							.bitdebug(), 
-							.done_gm(done_gm)
+							.done_gm(done_gm),
+							.init_begin(init_begin_lcd)
 						);
 
 	
@@ -179,7 +182,8 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 		.player_in(player_bu),
 		.pid(pid),
 		.found_piece(piece_under),
-		.moveSet(moveSet_gm)
+		.moveSet(moveSet_gm),
+		.init_begin(init_begin_lcd)
 	);
 
 	initial begin
@@ -188,6 +192,7 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 		y_cursor <= 3'b001;
 		__ENTER_pressed <= 1'b0;
 		__ESC_pressed <= 1'b0;
+		__CONFIRM_pressed <= 1'b0;
 		cursor_moved <= 1'b0;
 	end
 	
@@ -218,8 +223,8 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 
 	always @(posedge clk25) begin
 		if (dbg_sw1) begin
-			x_cursor <= 3'b000;
-			y_cursor <= 3'b001;
+			x_cursor <= 3'b100;
+			y_cursor <= 3'b000;
 		end
 		else begin
 			if (__CONFIRM_pressed == 1'b1) begin
@@ -281,6 +286,7 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 			if (__ESC_pressed == 1'b1) begin
 				__ENTER_pressed <= 1'b0;
 				__ESC_pressed <= 1'b0;
+				__CONFIRM_pressed <= 1'b0;
 			end
 									
 		end
