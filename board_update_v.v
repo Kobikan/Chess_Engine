@@ -63,6 +63,7 @@ module board_update_v (clk, RST, en, player, move_input, piece_number, location_
 	parameter INITIALIZE_LOCATIONS_WHITE = 96'h20928B30D38F0070460850C4; //P1P2P3P4P5P6P7P8R1R2N1N2B1B2Q1K1
 	parameter INITIALIZE_LOCATIONS_BLACK = 96'hC31CB3D35DB7E3FE7EEBDEFC; //P1P2P3P4P5P6P7P8R1R2N1N2B1B2Q1K1
 	
+	
 	assign alive_vectors_w = alive_vectors_w_q;
 	assign location_vectors_w = location_vectors_w_q;
 	assign output_player = output_player_q;

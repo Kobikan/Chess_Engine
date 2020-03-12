@@ -1,7 +1,7 @@
 `timescale 1 ns / 1 ps
 
 module LCD(clk12, reset, BGR, HSYNC, VSYNC, DISP, cursor, enter_pressed, esc_pressed, en, confirm_pressed, lvb, lvw, avb, avw, 
-player_in, pid, found_piece, moveSet);
+player_in, pid, found_piece, moveSet, init_begin);
 input clk12, reset, enter_pressed, esc_pressed, confirm_pressed;
 input [5:0] cursor;
 input [95:0] lvw, lvb;
@@ -13,6 +13,7 @@ output wire [23:0] BGR;
 output wire HSYNC, VSYNC, DISP;
 output reg [3:0] pid;
 output reg found_piece;
+output wire init_begin;
 
 
 parameter RESET = 2'b00;
@@ -91,6 +92,10 @@ reg [23:0] cBGR;
 reg cDISP;
 
 reg [6:0] cursor_colour[31:0] ;
+reg temp_init_begin;
+wire tert_pressed;
+
+assign tert_pressed = ~confirm_pressed;
 
 assign HSYNC = hS;
 assign VSYNC = vS;
@@ -191,7 +196,7 @@ initial begin
 	king_piece[5] <= 8'b01_00_00_10;
 	king_piece[6] <= 8'b01_11_11_10;
 	king_piece[7] <= 8'b00_00_00_00;
-	
+	temp_init_begin <= 1'b1;
 //	player <= 1'b1;
 	
 //	cursor <= 6'b100_100;
@@ -203,8 +208,9 @@ assign alive_vectors_b = avb;
 assign player = player_in;
 assign location_vectors_w = lvw;
 assign location_vectors_b = lvb;
-assign ms_in = moveSet;
-
+//assign ms_in = moveSet;
+assign ms_in = 128'h0F0F00F0000000000000000000000000;
+assign init_begin = temp_init_begin;
 	
 
 //Increment hCount and VCount values
@@ -252,11 +258,13 @@ always @(posedge clk12) begin
   end
 end
 
-always @(posedge en) begin
+always @(posedge enter_pressed) begin
 //initialize player colouring
+	index = 0;
 	for (i = 31; i >= 0 ; i=i -1) begin
 		cursor_colour[i] = 7'b0000000;
 	end
+if(tert_pressed == 1'b1 || temp_init_begin == 1'b1) begin
 case (temppid[3:0]) 
 		P1: begin
 		if (player == 1'b1) begin
@@ -565,11 +573,11 @@ case (temppid[3:0])
 		R1: begin
 //			index = 0;
 //			for (i=ms_in[95 -: 3] ; i>0 ; i=i-1) begin
-//				cursor_colour[index] = {1'b1, cursor[5:3], cursor[2:0] + (3'b001*i)};
+//				cursor_colour[index] = {1'b1, cursor[5:3], cursor[2:0] - (3'b001*i)};
 //				index = index+1;
 //			end
 //			for (i=ms_in[92 -: 3] ; i>0 ; i=i-1) begin
-//				cursor_colour[index] = {1'b1, cursor[5:3], cursor[2:0] - (3'b001*i)};
+//				cursor_colour[index] = {1'b1, cursor[5:3], cursor[2:0] + (3'b001*i)};
 //				index = index+1;
 //			end
 //			for (i=ms_in[89 -: 3] ; i>0 ; i=i-1) begin
@@ -596,6 +604,7 @@ case (temppid[3:0])
 		K1: begin
 		end
 	endcase
+	end
 end
 
 //Send 
@@ -618,6 +627,11 @@ always @(posedge enter_pressed) begin
 	end
 	found_piece = tempPieceUnder;
 	pid = temppid[3:0];
+	if ((temppid[3:0] != K1) || (temppid[3:0] != Q1) || (temppid[3:0] != R1)  || (temppid[3:0] != R2)  
+	|| (temppid[3:0] != B1)  || (temppid[3:0] != B2)) begin
+		temp_init_begin = 1'b0;
+	end
+	
 	//decode move set
 end
 
@@ -670,24 +684,27 @@ always @(posedge clk12) begin
 						cBGR = 24'h67_97_CC;
 					end
 					
-					if (((cursor[5:3] - (7 - ((vCount - 4)/pxWidth))) == 0) && ((cursor[2:0] - ((hCount - 108)/pxWidth)) == 0)) begin
-						if (enter_pressed == 1'b1) begin
-							cBGR = 24'h99_5E_C2;
-						end
-						else begin
-							cBGR = 24'h3A_99_72;
-						end
-					end
-					
 					for (i=31 ; i>=0 ; i = i-1) begin
-						if (enter_pressed == 1'b1) begin	
+//						if (enter_pressed == 1'b1 && confirm_pressed == 1'b0) begin	
 							if ((cursor_colour[i] & 7'b1000000) == 7'b1000000) begin //means the loc should be coloured
 								if ((vCount >= (7 - cursor_colour[i][5 -:3])*pxWidth + 4) && (vCount < (8 - cursor_colour[i][5 -:3])*pxWidth + 4)
 								&& (hCount >= (cursor_colour[i][(5 - 3) -: 3]*pxWidth + 108)) && (hCount < ((cursor_colour[i][(5 - 3) -: 3] + 1)*pxWidth + 108))) begin
-									cBGR <= 24'hFF_80_00;
+									cBGR = 24'hFF_80_00;
 								end
 								
 							end
+//						end
+					end
+					
+					if (((cursor[5:3] - (7 - ((vCount - 4)/pxWidth))) == 0) && ((cursor[2:0] - ((hCount - 108)/pxWidth)) == 0)) begin
+						if (enter_pressed == 1'b1) begin
+							if ((vCount >= (7 - cursor[5 -:3])*pxWidth + 7) && (vCount < (8 - cursor[5 -:3])*pxWidth + 1)
+							&& (hCount >= (cursor[(5 - 3) -: 3]*pxWidth + 111)) && (hCount < ((cursor[(5 - 3) -: 3] + 1)*pxWidth + 105))) begin
+								cBGR = 24'h00_00_FF;
+							end
+						end
+						else begin
+							cBGR = 24'h3A_99_72;
 						end
 					end
 					
