@@ -12,6 +12,7 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 	parameter __RIGHT = 8'h23;
 	parameter __ENTER = 8'h5A;
 	parameter __ESC = 8'h76;
+	parameter __MOVE = 8'h3A;
 
 	reg[15:0] kb_code, seg_code;
 	reg enable_PS2;
@@ -20,7 +21,7 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 	reg check_ext;
 	
 	reg cursor_moved;
-	reg __ENTER_pressed, __ESC_pressed;
+	reg __ENTER_pressed, __ESC_pressed, __MOVE_pressed;
 	reg __CONFIRM_pressed;
 	reg [2:0] x_cursor, y_cursor;
 	wire [5:0] PS2_cursor;
@@ -175,6 +176,7 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 		.enter_pressed(__ENTER_pressed),
 		.esc_pressed(__ESC_pressed),
 		.confirm_pressed(__CONFIRM_pressed),
+		.move_pressed(__MOVE_pressed),
 		.lvb(lvb_bu),
 		.lvw(lvw_bu),
 		.avb(avb_bu),
@@ -192,6 +194,7 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 		y_cursor <= 3'b001;
 		__ENTER_pressed <= 1'b0;
 		__ESC_pressed <= 1'b0;
+		__MOVE_pressed <= 1'b0;
 		__CONFIRM_pressed <= 1'b0;
 		cursor_moved <= 1'b0;
 	end
@@ -271,8 +274,13 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 									end	
 								end
 								else begin
-									if (scanned_code1 == __ESC || scanned_code2 == __ESC) begin
+									if (scanned_code1 == __MOVE || scanned_code2 == __MOVE) begin
+											__MOVE_pressed <= 1'b1;
+									end
+									else begin
+										if (scanned_code1 == __ESC || scanned_code2 == __ESC) begin
 											__ESC_pressed <= 1'b1;
+										end
 									end
 								end
 							end
@@ -284,9 +292,18 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 				cursor_moved <= 1'b0;
 			end
 			if (__ESC_pressed == 1'b1) begin
-				__ENTER_pressed <= 1'b0;
-				__ESC_pressed <= 1'b0;
-				__CONFIRM_pressed <= 1'b0;
+				if (__MOVE_pressed == 1'b1) begin
+					__MOVE_pressed <= 1'b0;
+					__ESC_pressed <= 1'b0;
+				end
+				else begin
+					__ENTER_pressed <= 1'b0;
+					__ESC_pressed <= 1'b0;
+					__CONFIRM_pressed <= 1'b0;
+				end
+			end
+			if (__CONFIRM_pressed == 1'b1) begin
+				__MOVE_pressed <= 1'b0;
 			end
 									
 		end
