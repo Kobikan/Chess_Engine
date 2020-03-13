@@ -1,8 +1,8 @@
 `timescale 1 ns / 1 ps
 
-module LCD(clk12, reset, BGR, HSYNC, VSYNC, DISP, cursor, enter_pressed, esc_pressed, en, confirm_pressed, lvb, lvw, avb, avw, 
+module LCD(clk12, reset, BGR, HSYNC, VSYNC, DISP, cursor, enter_pressed, esc_pressed, en, confirm_pressed, move_pressed, lvb, lvw, avb, avw, 
 player_in, pid, found_piece, moveSet, init_begin);
-input clk12, reset, enter_pressed, esc_pressed, confirm_pressed;
+input clk12, reset, enter_pressed, esc_pressed, confirm_pressed, move_pressed;
 input [5:0] cursor;
 input [95:0] lvw, lvb;
 input [15:0] avw, avb;
@@ -105,6 +105,7 @@ assign BGR = cBGR;
 
 //reg done = 1'b1;
 integer i, j, index;
+reg[2:0] reg_i;
 //reg [2:0] reg_i, reg_j;
 
 //reg [12:0] pawn_w_addr;
@@ -208,8 +209,8 @@ assign alive_vectors_b = avb;
 assign player = player_in;
 assign location_vectors_w = lvw;
 assign location_vectors_b = lvb;
-//assign ms_in = moveSet;
-assign ms_in = 128'h0F0F00F0000000000000000000000000;
+assign ms_in = moveSet;
+//assign ms_in = 128'h0F0F00F0000000000000000000000000;
 assign init_begin = temp_init_begin;
 	
 
@@ -258,7 +259,8 @@ always @(posedge clk12) begin
   end
 end
 
-always @(posedge enter_pressed) begin
+
+always @(posedge move_pressed) begin
 //initialize player colouring
 	index = 0;
 	for (i = 31; i >= 0 ; i=i -1) begin
@@ -268,340 +270,563 @@ if(tert_pressed == 1'b1 || temp_init_begin == 1'b1) begin
 case (temppid[3:0]) 
 		P1: begin
 		if (player == 1'b1) begin
-			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
-				index = index + 1;
-			end
-			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
-				index = index + 1;
+			if (location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) begin
+				if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
 			end
 		end
 		else begin
-			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
-				index = index + 1;
-			end
-			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
-				index = index + 1;
+			if (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]]) begin
+				if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
 			end
 		end
 		end
 		P2: begin
 		if (player == 1'b1) begin
-			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
-				index = index + 1;
-			end
-			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
-				index = index + 1;
+			if (location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) begin
+				if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
 			end
 		end
 		else begin
-			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
-				index = index + 1;
-			end
-			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
-				index = index + 1;
+			if (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]]) begin
+				if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
 			end
 		end
 		end
 		P3: begin
 		if (player == 1'b1) begin
-			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
-				index = index + 1;
-			end
-			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
-				index = index + 1;
+			if (location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) begin
+				if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
 			end
 		end
 		else begin
-			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
-				index = index + 1;
-			end
-			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
-				index = index + 1;
+			if (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]]) begin
+				if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
 			end
 		end
 		end
 		P4: begin
 		if (player == 1'b1) begin
-			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
-				index = index + 1;
-			end
-			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
-				index = index + 1;
+			if (location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) begin
+				if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
 			end
 		end
 		else begin
-			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
-				index = index + 1;
-			end
-			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
-				index = index + 1;
+			if (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]]) begin
+				if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
 			end
 		end
 		end
 		P5: begin
 		if (player == 1'b1) begin
-			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
-				index = index + 1;
-			end
-			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
-				index = index + 1;
+			if (location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) begin
+				if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
 			end
 		end
 		else begin
-			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
-				index = index + 1;
-			end
-			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
-				index = index + 1;
+			if (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]]) begin
+				if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
 			end
 		end
 		end
 		P6: begin
 		if (player == 1'b1) begin
-			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
-				index = index + 1;
-			end
-			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
-				index = index + 1;
+			if (location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) begin
+				if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
 			end
 		end
 		else begin
-			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
-				index = index + 1;
-			end
-			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
-				index = index + 1;
+			if (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]]) begin
+				if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
 			end
 		end
 		end
 		P7: begin
 		if (player == 1'b1) begin
-			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
-				index = index + 1;
-			end
-			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
-				index = index + 1;
+			if (location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) begin
+				if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
 			end
 		end
 		else begin
-			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
-				index = index + 1;
-			end
-			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
-				index = index + 1;
+			if (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]]) begin
+				if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
 			end
 		end
 		end
 		P8: begin
 		if (player == 1'b1) begin
-			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
-				index = index + 1;
-			end
-			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
-				index = index + 1;
+			if (location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) begin
+				if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
 			end
 		end
 		else begin
-			if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
-				index = index + 1;
-			end
-			if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
-				index = index + 1;
-			end
-			if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
-				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
-				index = index + 1;
+			if (location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]]) begin
+				if (ms_in[127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
 			end
 		end
 		end
 		R1: begin
-//			index = 0;
-//			for (i=ms_in[95 -: 3] ; i>0 ; i=i-1) begin
-//				cursor_colour[index] = {1'b1, cursor[5:3], cursor[2:0] - (3'b001*i)};
-//				index = index+1;
-//			end
-//			for (i=ms_in[92 -: 3] ; i>0 ; i=i-1) begin
-//				cursor_colour[index] = {1'b1, cursor[5:3], cursor[2:0] + (3'b001*i)};
-//				index = index+1;
-//			end
-//			for (i=ms_in[89 -: 3] ; i>0 ; i=i-1) begin
-//				cursor_colour[index] = {1'b1, cursor[5:3] + (3'b001*i), cursor[2:0]};
-//				index = index+1;
-//			end
-//			for (i=ms_in[86 -: 3] ; i>0 ; i=i-1) begin
-//				cursor_colour[index] = {1'b1, cursor[5:3] - (3'b001*i), cursor[2:0]};
-//				index = index+1;
-//			end
+		if ((location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) || (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]])) begin
+			for (i=1; i<=ms_in[95 -:3] ; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3], cursor[2:0] - i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=ms_in[92 -: 3]; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3], cursor[2:0] + i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=ms_in[89 -: 3]; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + i[2:0], cursor[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=ms_in[86 -: 3] ; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0]};
+				index = index+1;
+			end
+		end
 		end
 		R2: begin
+		if ((location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) || (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]])) begin
+			for (i=1; i<=ms_in[83 -:3] ; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3], cursor[2:0] - i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=ms_in[80 -: 3]; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3], cursor[2:0] + i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=ms_in[77 -: 3]; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + i[2:0], cursor[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=ms_in[74 -: 3] ; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0]};
+				index = index+1;
+			end
+		end
 		end
 		N1: begin
+		if ((location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) || (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]])) begin
+			if (ms_in[71] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[70] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b010};
+				index = index + 1;
+			end
+			if (ms_in[69] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[68] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b010};
+				index = index + 1;
+			end
+			if (ms_in[67] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[66] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b010};
+				index = index + 1;
+			end
+			if (ms_in[65] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[64] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b010};
+				index = index + 1;
+			end
+		end
 		end
 		N2: begin
+		if ((location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) || (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]])) begin
+			if (ms_in[63] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[62] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b010};
+				index = index + 1;
+			end
+			if (ms_in[61] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[60] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b010};
+				index = index + 1;
+			end
+			if (ms_in[59] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[58] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b010};
+				index = index + 1;
+			end
+			if (ms_in[57] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[56] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b010};
+				index = index + 1;
+			end
+		end
 		end
 		B1: begin
+		if ((location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) || (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]])) begin
+			for (i=1; i<=ms_in[55 -:3] ; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + i[2:0], cursor[2:0] - i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=ms_in[52 -: 3]; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + i[2:0], cursor[2:0] + i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=ms_in[49 -: 3]; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0] - i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=ms_in[46 -: 3] ; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0] + i[2:0]};
+				index = index+1;
+			end
+		end
 		end
 		B2: begin
+		if ((location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) || (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]])) begin
+			for (i=1; i<=ms_in[43 -:3] ; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + i[2:0], cursor[2:0] - i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=ms_in[40 -: 3]; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + i[2:0], cursor[2:0] + i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=ms_in[37 -: 3]; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0] - i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=ms_in[34 -: 3] ; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0] + i[2:0]};
+				index = index+1;
+			end
+		end
 		end
 		Q1: begin
+		if ((location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) || (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]])) begin
+			for (i=1; i<=ms_in[31 -:3] ; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3], cursor[2:0] - i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=ms_in[28 -: 3]; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3], cursor[2:0] + i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=ms_in[25 -: 3]; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + i[2:0], cursor[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=ms_in[22 -: 3] ; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=ms_in[19 -:3] ; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + i[2:0], cursor[2:0] - i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=ms_in[16 -: 3]; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + i[2:0], cursor[2:0] + i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=ms_in[13 -: 3]; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0] - i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=ms_in[10 -: 3] ; i=i+1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0] + i[2:0]};
+				index = index+1;
+			end
+		end
 		end
 		K1: begin
+		if ((location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) || (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]])) begin
+			if (ms_in[7] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[6] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[5] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[4] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3], cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[3] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[2] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+				index = index + 1;
+			end
+			if (ms_in[1] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (ms_in[0] == 1'b1) begin
+				cursor_colour[index] = {1'b1, cursor[5:3], cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+		end
 		end
 	endcase
 	end
@@ -685,7 +910,7 @@ always @(posedge clk12) begin
 					end
 					
 					for (i=31 ; i>=0 ; i = i-1) begin
-//						if (enter_pressed == 1'b1 && confirm_pressed == 1'b0) begin	
+						if (move_pressed == 1'b1) begin	
 							if ((cursor_colour[i] & 7'b1000000) == 7'b1000000) begin //means the loc should be coloured
 								if ((vCount >= (7 - cursor_colour[i][5 -:3])*pxWidth + 4) && (vCount < (8 - cursor_colour[i][5 -:3])*pxWidth + 4)
 								&& (hCount >= (cursor_colour[i][(5 - 3) -: 3]*pxWidth + 108)) && (hCount < ((cursor_colour[i][(5 - 3) -: 3] + 1)*pxWidth + 108))) begin
@@ -693,7 +918,18 @@ always @(posedge clk12) begin
 								end
 								
 							end
-//						end
+						end
+						else if (move_pressed == 1'b0) begin
+							if(((vCount >= 4 && vCount < 37) || (vCount >=70 && vCount < 103) || (vCount >=136 && vCount < 169) || (vCount >=202 && vCount < 235)) && ~((hCount >= 108 && hCount < 141) || (hCount >= 174 && hCount < 207) || (hCount >= 240 && hCount < 273) || (hCount >= 306 && hCount < 339)) == 1'b1) begin
+								cBGR = 24'h11_44_8B;
+							end
+							else if(~((vCount >= 4 && vCount < 37) || (vCount >=70 && vCount < 103) || (vCount >=136 && vCount < 169) || (vCount >=202 && vCount < 235)) && ~((hCount >= 108 && hCount < 141) || (hCount >= 174 && hCount < 207) || (hCount >= 240 && hCount < 273) || (hCount >= 306 && hCount < 339)) == 1'b0) begin
+								cBGR = 24'h11_44_8B;
+							end
+							else begin
+								cBGR = 24'h67_97_CC;
+							end
+						end
 					end
 					
 					if (((cursor[5:3] - (7 - ((vCount - 4)/pxWidth))) == 0) && ((cursor[2:0] - ((hCount - 108)/pxWidth)) == 0)) begin
