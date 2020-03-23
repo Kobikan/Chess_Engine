@@ -15,7 +15,7 @@ output reg [3:0] pid;
 output reg found_piece;
 output wire init_begin;
 
-
+ 
 parameter RESET = 2'b00;
 parameter SEND_LINE = 2'b01;
 parameter SEND_VSYNC = 3'b10;
@@ -58,6 +58,11 @@ parameter K1 = 4'b0000;
 
 reg board[7:0][7:0];
 
+reg[127:0] Bmoves[7:0] ;
+
+
+integer counter = 0;
+
 //reg [5:0] cursor;
 wire [95:0] location_vectors_w;
 wire [95:0] location_vectors_b;
@@ -76,6 +81,8 @@ reg [7:0] king_piece [7:0];
 reg[7:0] local_piece;
 
 wire player;
+reg previousPlayer;
+
 reg[95:0] BLACK    = 96'b101111_101110_101101_101100_101011_101010_101001_101000_100111_100110_100101_100100_100011_100010_100001_100000;
 reg[95:0] WHITE    = 96'b111111_111110_111101_111100_111011_111010_111001_111000_110111_110110_110101_110100_110011_110010_110001_110000;
 reg[5:0] temppid = 6'b000000;
@@ -92,6 +99,8 @@ reg [23:0] cBGR;
 reg cDISP;
 
 reg [6:0] cursor_colour[31:0] ;
+reg [6:0] cursor_best[31:0] ;
+
 reg temp_init_begin;
 wire tert_pressed;
 
@@ -133,7 +142,7 @@ initial begin
 	//alive_vectors_b <= 16'hFFFF;
 	i <= 95;
 	j <= 15;
-
+	previousPlayer <= 1'b0;
 	local_piece <= 8'h00;
 	pawn_w_piece[0] <= 8'b00_00_00_00;
 	pawn_w_piece[1] <= 8'b00_01_10_00;
@@ -199,6 +208,14 @@ initial begin
 	king_piece[7] <= 8'b00_00_00_00;
 	temp_init_begin <= 1'b1;
 //	player <= 1'b1;
+	Bmoves[0] <= 128'h44444444_000000_0208_000000_000000_00;
+	 Bmoves[1] <= 128'h44444444_000000_2080_000000_000000_00;
+	 Bmoves[2] <= 128'h88888888_008000_0208_000000_000000_00;
+	 Bmoves[3] <= 128'h88888888_001000_2080_000000_000000_00;
+	 Bmoves[4] <= 128'h84844888_008000_0208_000000_000000_00;
+	 Bmoves[5] <= 128'h84844888_001000_0208_000000_000000_00;
+	 Bmoves[6] <= 128'h84888888_008000_0208_005000_000000_00;
+	 Bmoves[7] <= 128'h84888888_001000_0208_140000_000000_00;
 	
 //	cursor <= 6'b100_100;
 end
@@ -263,11 +280,581 @@ end
 always @(posedge move_pressed) begin
 //initialize player colouring
 	index = 0;
+	for (i = 31; i >= 0 ; i=i-1) begin
+		cursor_best[i] = 7'b0000000;
+	end
+	
 	for (i = 31; i >= 0 ; i=i -1) begin
 		cursor_colour[i] = 7'b0000000;
 	end
-if(tert_pressed == 1'b1 || temp_init_begin == 1'b1) begin
-case (temppid[3:0]) 
+	
+	if(tert_pressed == 1'b1 || temp_init_begin == 1'b1) begin
+		case (temppid[3:0]) 
+		P1: begin
+		if (player == 1'b1) begin
+			if (location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) begin
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+			end
+		end
+		else begin
+			if (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]]) begin
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+			end
+		end
+		end
+		P2: begin
+		if (player == 1'b1) begin
+			if (location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) begin
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+			end
+		end
+		else begin
+			if (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]]) begin
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+			end
+		end
+		end
+		P3: begin
+		if (player == 1'b1) begin
+			if (location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) begin
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+			end
+		end
+		else begin
+			if (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]]) begin
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+			end
+		end
+		end
+		P4: begin
+		if (player == 1'b1) begin
+			if (location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) begin
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+			end
+		end
+		else begin
+			if (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]]) begin
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+			end
+		end
+		end
+		P5: begin
+		if (player == 1'b1) begin
+			if (location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) begin
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+			end
+		end
+		else begin
+			if (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]]) begin
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+			end
+		end
+		end
+		P6: begin
+		if (player == 1'b1) begin
+			if (location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) begin
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+			end
+		end
+		else begin
+			if (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]]) begin
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+			end
+		end
+		end
+		P7: begin
+		if (player == 1'b1) begin
+			if (location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) begin
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+			end
+		end
+		else begin
+			if (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]]) begin
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+			end
+		end
+		end
+		P8: begin
+		if (player == 1'b1) begin
+			if (location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) begin
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+			end
+		end
+		else begin
+			if (location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]]) begin
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index = index + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index = index + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index = index + 1;
+				end
+			end
+		end
+		end
+		R1: begin
+		if ((location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) || (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]])) begin
+			for (i=1; i<=Bmoves[counter][95 -:3] ; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3], cursor[2:0] - i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=Bmoves[counter][92 -: 3]; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3], cursor[2:0] + i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=Bmoves[counter][89 -: 3]; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] + i[2:0], cursor[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=Bmoves[counter][86 -: 3] ; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0]};
+				index = index+1;
+			end
+		end
+		end
+		R2: begin
+		if ((location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) || (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]])) begin
+			for (i=1; i<=Bmoves[counter][83 -:3] ; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3], cursor[2:0] - i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=Bmoves[counter][80 -: 3]; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3], cursor[2:0] + i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=Bmoves[counter][77 -: 3]; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] + i[2:0], cursor[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=Bmoves[counter][74 -: 3] ; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0]};
+				index = index+1;
+			end
+		end
+		end
+		N1: begin
+		if ((location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) || (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]])) begin
+			if (Bmoves[counter][71] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (Bmoves[counter][70] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b010};
+				index = index + 1;
+			end
+			if (Bmoves[counter][69] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+			if (Bmoves[counter][68] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b010};
+				index = index + 1;
+			end
+			if (Bmoves[counter][67] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (Bmoves[counter][66] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b010};
+				index = index + 1;
+			end
+			if (Bmoves[counter][65] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+			if (Bmoves[counter][64] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b010};
+				index = index + 1;
+			end
+		end
+		end
+		N2: begin
+		if ((location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) || (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]])) begin
+			if (Bmoves[counter][63] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (Bmoves[counter][62] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b010};
+				index = index + 1;
+			end
+			if (Bmoves[counter][61] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+			if (Bmoves[counter][60] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b010};
+				index = index + 1;
+			end
+			if (Bmoves[counter][59] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (Bmoves[counter][58] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b010};
+				index = index + 1;
+			end
+			if (Bmoves[counter][57] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+			if (Bmoves[counter][56] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b010};
+				index = index + 1;
+			end
+		end
+		end
+		B1: begin
+		if ((location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) || (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]])) begin
+			for (i=1; i<=Bmoves[counter][55 -:3] ; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] + i[2:0], cursor[2:0] - i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=Bmoves[counter][52 -: 3]; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] + i[2:0], cursor[2:0] + i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=Bmoves[counter][49 -: 3]; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0] - i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=Bmoves[counter][46 -: 3] ; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0] + i[2:0]};
+				index = index+1;
+			end
+		end
+		end
+		B2: begin
+		if ((location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) || (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]])) begin
+			for (i=1; i<=Bmoves[counter][43 -:3] ; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] + i[2:0], cursor[2:0] - i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=Bmoves[counter][40 -: 3]; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] + i[2:0], cursor[2:0] + i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=Bmoves[counter][37 -: 3]; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0] - i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=Bmoves[counter][34 -: 3] ; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0] + i[2:0]};
+				index = index+1;
+			end
+		end
+		end
+		Q1: begin
+		if ((location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) || (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]])) begin
+			for (i=1; i<=Bmoves[counter][31 -:3] ; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3], cursor[2:0] - i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=Bmoves[counter][28 -: 3]; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3], cursor[2:0] + i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=Bmoves[counter][25 -: 3]; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] + i[2:0], cursor[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=Bmoves[counter][22 -: 3] ; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=Bmoves[counter][19 -:3] ; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] + i[2:0], cursor[2:0] - i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=Bmoves[counter][16 -: 3]; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] + i[2:0], cursor[2:0] + i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=Bmoves[counter][13 -: 3]; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0] - i[2:0]};
+				index = index+1;
+			end
+			for (i=1; i<=Bmoves[counter][10 -: 3] ; i=i+1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0] + i[2:0]};
+				index = index+1;
+			end
+		end
+		end
+		K1: begin
+		if ((location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) || (location_vectors_b[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_b[temppid[3:0]])) begin
+			if (Bmoves[counter][7] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (Bmoves[counter][6] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+				index = index + 1;
+			end
+			if (Bmoves[counter][5] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+			if (Bmoves[counter][4] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3], cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+			if (Bmoves[counter][3] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+				index = index + 1;
+			end
+			if (Bmoves[counter][2] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+				index = index + 1;
+			end
+			if (Bmoves[counter][1] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+			if (Bmoves[counter][0] == 1'b1) begin
+				cursor_best[index] = {1'b1, cursor[5:3], cursor[2:0] - 3'b001};
+				index = index + 1;
+			end
+		end
+		end
+	endcase
+	end
+	
+	if(tert_pressed == 1'b1 || temp_init_begin == 1'b1) begin
+		case (temppid[3:0]) 
 		P1: begin
 		if (player == 1'b1) begin
 			if (location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) begin
@@ -830,6 +1417,10 @@ case (temppid[3:0])
 		end
 	endcase
 	end
+	if (previousPlayer != player) begin
+		counter = counter + 1;
+	end
+	previousPlayer <= player;
 end
 
 //Send 
@@ -915,6 +1506,13 @@ always @(posedge clk12) begin
 								if ((vCount >= (7 - cursor_colour[i][5 -:3])*pxWidth + 4) && (vCount < (8 - cursor_colour[i][5 -:3])*pxWidth + 4)
 								&& (hCount >= (cursor_colour[i][(5 - 3) -: 3]*pxWidth + 108)) && (hCount < ((cursor_colour[i][(5 - 3) -: 3] + 1)*pxWidth + 108))) begin
 									cBGR = 24'hFF_80_00;
+								end
+								
+							end
+							if ((cursor_best[i] & 7'b1000000) == 7'b1000000) begin //means the loc should be coloured
+								if ((vCount >= (7 - cursor_best[i][5 -:3])*pxWidth + 4) && (vCount < (8 - cursor_best[i][5 -:3])*pxWidth + 4)
+								&& (hCount >= (cursor_best[i][(5 - 3) -: 3]*pxWidth + 108)) && (hCount < ((cursor_best[i][(5 - 3) -: 3] + 1)*pxWidth + 108))) begin
+									cBGR = 24'h80_00_80;
 								end
 								
 							end
