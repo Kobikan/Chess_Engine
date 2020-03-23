@@ -12,7 +12,7 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 	parameter __RIGHT = 8'h23;
 	parameter __ENTER = 8'h5A;
 	parameter __ESC = 8'h76;
-	parameter __MOVE = 8'h3A;
+	parameter __MOVE = 8'h4A;
 
 	reg[15:0] kb_code, seg_code;
 	reg enable_PS2;
