@@ -1,0 +1,22 @@
+library ieee;
+use ieee.std_logic_1164.all ;
+
+entity chess_engine is
+	clk : in std_logic;
+	switch : in std_logic;
+	led : out std_logic;
+end chess_engine;
+
+architecture keyboard of chess_engine is
+begin
+	test: process(switch) 
+	begin	
+		if (clk'event AND clk='1' and switch='1') then
+			led <= '1';
+		end if;
+	end test;
+end; 
+
+
+
+end keyboard;
