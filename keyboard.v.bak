@@ -1,0 +1,7 @@
+module keyboard (PS2_CLK, PS2_DAT, key);
+	input PS2_CLK, PS2_DAT;
+	output key;
+	reg[7:0] byte1;
+	reg[7:0] byte2;
+	reg[7:0] byte3;
+end module;

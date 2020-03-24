@@ -15,7 +15,7 @@ output reg [3:0] pid;
 output reg found_piece;
 output wire init_begin;
 
-
+ 
 parameter RESET = 2'b00;
 parameter SEND_LINE = 2'b01;
 parameter SEND_VSYNC = 3'b10;
@@ -25,12 +25,10 @@ parameter vCountMax = 285;
 parameter hImage_Area 		= 480;
 parameter hFront_Porch   	= 2;
 parameter hSync_Pulse		= 1;
-//parameter hBack_Porch		= 43;
-//
+
 parameter vImage_Area		= 272;
 parameter vFront_Porch		= 1;
 parameter vSync_Pulse		= 1;
-//parameter vBack_Porch		= 12;
 
 parameter startUpMax = 16;
 
@@ -58,7 +56,11 @@ parameter K1 = 4'b0000;
 
 reg board[7:0][7:0];
 
-//reg [5:0] cursor;
+reg[127:0] Bmoves[7:0];
+
+
+integer counter = 0;
+
 wire [95:0] location_vectors_w;
 wire [95:0] location_vectors_b;
 wire [15:0] alive_vectors_w;
@@ -76,6 +78,8 @@ reg [7:0] king_piece [7:0];
 reg[7:0] local_piece;
 
 wire player;
+reg previousPlayer;
+
 reg[95:0] BLACK    = 96'b101111_101110_101101_101100_101011_101010_101001_101000_100111_100110_100101_100100_100011_100010_100001_100000;
 reg[95:0] WHITE    = 96'b111111_111110_111101_111100_111011_111010_111001_111000_110111_110110_110101_110100_110011_110010_110001_110000;
 reg[5:0] temppid = 6'b000000;
@@ -91,7 +95,9 @@ reg hS, vS;
 reg [23:0] cBGR;
 reg cDISP;
 
-reg [6:0] cursor_colour[31:0] ;
+reg [6:0] cursor_colour[31:0];
+reg [6:0] cursor_best[31:0];
+
 reg temp_init_begin;
 wire tert_pressed;
 
@@ -101,39 +107,14 @@ assign HSYNC = hS;
 assign VSYNC = vS;
 assign DISP = cDISP; //1: ON, 0: OFF
 assign BGR = cBGR;
-//reg pawn_w[1023:0];
 
-//reg done = 1'b1;
-integer i, j, index;
+integer i, j, index, index_best;
 reg[2:0] reg_i;
-//reg [2:0] reg_i, reg_j;
-
-//reg [12:0] pawn_w_addr;
-//wire pawn_w_q;
-//
-//RAM ram_block(
-//	.address(ram_addr),
-//	.clock(clk12),
-//	.wren(),
-//	.data(),
-//	.q(ram_q)
-//);
 
 initial begin
-//	$readmemb("pawn_w.txt", pawn_w);
-//	board[0][7] = 1'b1;
-//	board[1][7] = 1'b1;
-//	board[4][5] = 1'b1;
-//	board[2][6] = 1'b1;
-//	reg_i = 3'b000;
-//	reg_j = 3'b000;
-	//location_vectors_w <= 96'h20928B30D38F0070460850C4;
-	//location_vectors_b <= 96'hC31CB3D35DB7E3FE7EEBDEFC;
-	//alive_vectors_w <= 16'hFFFF;
-	//alive_vectors_b <= 16'hFFFF;
 	i <= 95;
 	j <= 15;
-
+	previousPlayer <= 1'b0;
 	local_piece <= 8'h00;
 	pawn_w_piece[0] <= 8'b00_00_00_00;
 	pawn_w_piece[1] <= 8'b00_01_10_00;
@@ -198,9 +179,15 @@ initial begin
 	king_piece[6] <= 8'b01_11_11_10;
 	king_piece[7] <= 8'b00_00_00_00;
 	temp_init_begin <= 1'b1;
-//	player <= 1'b1;
 	
-//	cursor <= 6'b100_100;
+	Bmoves[0] <= 128'h44444444_000000_0208_000000_000000_00;
+	Bmoves[1] <= 128'h44444444_000000_0280_000000_000000_00;
+	Bmoves[2] <= 128'h44844444_000000_0208_000000_000000_00;
+	Bmoves[3] <= 128'h44844444_040000_2080_000000_000000_00;
+	Bmoves[4] <= 128'h44884444_000000_0208_0C0000_000000_00;
+	Bmoves[5] <= 128'h84844088_200000_0208_000000_000000_00;
+	Bmoves[6] <= 128'h84818888_000000_0208_200000_000000_00;
+	Bmoves[7] <= 128'h84880048_001000_0208_140000_000000_00;
 end
 
 	
@@ -210,7 +197,6 @@ assign player = player_in;
 assign location_vectors_w = lvw;
 assign location_vectors_b = lvb;
 assign ms_in = moveSet;
-//assign ms_in = 128'h0F0F00F0000000000000000000000000;
 assign init_begin = temp_init_begin;
 	
 
@@ -263,11 +249,15 @@ end
 always @(posedge move_pressed) begin
 //initialize player colouring
 	index = 0;
+	index_best = 0;
+	
 	for (i = 31; i >= 0 ; i=i -1) begin
 		cursor_colour[i] = 7'b0000000;
+		cursor_best[i] = 7'b0000000;
 	end
-if(tert_pressed == 1'b1 || temp_init_begin == 1'b1) begin
-case (temppid[3:0]) 
+	
+	if(tert_pressed == 1'b1 || temp_init_begin == 1'b1) begin
+		case (temppid[3:0]) 
 		P1: begin
 		if (player == 1'b1) begin
 			if (location_vectors_w[(temppid[3:0]*6 + 5) -: 6] == cursor[5:0] && alive_vectors_w[temppid[3:0]]) begin
@@ -275,17 +265,40 @@ case (temppid[3:0])
 					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
 					index = index + 1;
 				end
+				
 				if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
 					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
 					index = index + 1;
 				end
+				
 				if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
 					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
 					index = index + 1;
 				end
+				
 				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
 					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
 					index = index + 1;
+				end
+				
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index_best = index_best + 1;
+				end
+
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index_best = index_best + 1;
 				end
 			end
 		end
@@ -295,17 +308,40 @@ case (temppid[3:0])
 					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
 					index = index + 1;
 				end
+				
 				if (ms_in[126-(15-temppid[3:0])*4] == 1'b1) begin
 					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
 					index = index + 1;
 				end
+				
 				if (ms_in[125-(15-temppid[3:0])*4] == 1'b1) begin
 					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
 					index = index + 1;
 				end
+				
 				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
 					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
 					index = index + 1;
+				end
+				
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index_best = index_best + 1;
+				end
+				
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index_best = index_best + 1;
 				end
 			end
 		end
@@ -329,6 +365,23 @@ case (temppid[3:0])
 					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
 					index = index + 1;
 				end
+				
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index_best = index_best + 1;
+				end
 			end
 		end
 		else begin
@@ -348,6 +401,22 @@ case (temppid[3:0])
 				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
 					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
 					index = index + 1;
+				end
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index_best = index_best + 1;
 				end
 			end
 		end
@@ -371,6 +440,22 @@ case (temppid[3:0])
 					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
 					index = index + 1;
 				end
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index_best = index_best + 1;
+				end
 			end
 		end
 		else begin
@@ -390,6 +475,23 @@ case (temppid[3:0])
 				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
 					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
 					index = index + 1;
+				end
+				
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index_best = index_best + 1;
 				end
 			end
 		end
@@ -413,6 +515,23 @@ case (temppid[3:0])
 					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
 					index = index + 1;
 				end
+				
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index_best = index_best + 1;
+				end
 			end
 		end
 		else begin
@@ -432,6 +551,23 @@ case (temppid[3:0])
 				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
 					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
 					index = index + 1;
+				end
+				
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index_best = index_best + 1;
 				end
 			end
 		end
@@ -455,6 +591,23 @@ case (temppid[3:0])
 					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
 					index = index + 1;
 				end
+				
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index_best = index_best + 1;
+				end
 			end
 		end
 		else begin
@@ -474,6 +627,23 @@ case (temppid[3:0])
 				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
 					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
 					index = index + 1;
+				end
+				
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index_best = index_best + 1;
 				end
 			end
 		end
@@ -497,6 +667,23 @@ case (temppid[3:0])
 					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
 					index = index + 1;
 				end
+				
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index_best = index_best + 1;
+				end
 			end
 		end
 		else begin
@@ -516,6 +703,23 @@ case (temppid[3:0])
 				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
 					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
 					index = index + 1;
+				end
+				
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index_best = index_best + 1;
 				end
 			end
 		end
@@ -539,6 +743,23 @@ case (temppid[3:0])
 					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
 					index = index + 1;
 				end
+				
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index_best = index_best + 1;
+				end
 			end
 		end
 		else begin
@@ -558,6 +779,23 @@ case (temppid[3:0])
 				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
 					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
 					index = index + 1;
+				end
+				
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index_best = index_best + 1;
 				end
 			end
 		end
@@ -581,6 +819,23 @@ case (temppid[3:0])
 					cursor_colour[index] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
 					index = index + 1;
 				end
+				
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+					index_best = index_best + 1;
+				end
 			end
 		end
 		else begin
@@ -600,6 +855,23 @@ case (temppid[3:0])
 				if (ms_in[124-(15-temppid[3:0])*4] == 1'b1) begin
 					cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
 					index = index + 1;
+				end
+				
+				if (Bmoves[counter][127-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][126-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0]};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][125-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+					index_best = index_best + 1;
+				end
+				if (Bmoves[counter][124-(15-temppid[3:0])*4] == 1'b1) begin
+					cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+					index_best = index_best + 1;
 				end
 			end
 		end
@@ -622,6 +894,26 @@ case (temppid[3:0])
 				cursor_colour[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0]};
 				index = index+1;
 			end
+			
+			if (Bmoves[counter][95 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3], cursor[2:0] - Bmoves[counter][95 -: 3]};
+				index_best = index_best + 1;
+			end
+			
+			if (Bmoves[counter][92 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3], cursor[2:0] + Bmoves[counter][92 -: 3]};
+				index_best = index_best + 1;
+			end
+			
+			if (Bmoves[counter][89 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + Bmoves[counter][89 -: 3], cursor[2:0]};
+				index_best = index_best + 1;
+			end
+			
+			if (Bmoves[counter][86 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] - Bmoves[counter][86 -: 3], cursor[2:0]};
+				index_best = index_best + 1;
+			end
 		end
 		end
 		R2: begin
@@ -641,6 +933,26 @@ case (temppid[3:0])
 			for (i=1; i<=ms_in[74 -: 3] ; i=i+1) begin
 				cursor_colour[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0]};
 				index = index+1;
+			end
+			
+			if (Bmoves[counter][83 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3], cursor[2:0] - Bmoves[counter][83 -: 3]};
+				index_best = index_best + 1;
+			end
+			
+			if (Bmoves[counter][80 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3], cursor[2:0] + Bmoves[counter][80 -: 3]};
+				index_best = index_best + 1;
+			end
+			
+			if (Bmoves[counter][77 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + Bmoves[counter][77 -: 3], cursor[2:0]};
+				index_best = index_best + 1;
+			end
+			
+			if (Bmoves[counter][74 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] - Bmoves[counter][74 -: 3], cursor[2:0]};
+				index_best = index_best + 1;
 			end
 		end
 		end
@@ -678,6 +990,39 @@ case (temppid[3:0])
 				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b010};
 				index = index + 1;
 			end
+			
+			if (Bmoves[counter][71] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0] - 3'b001};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][70] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b010};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][69] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0] + 3'b001};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][68] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b010};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][67] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0] - 3'b001};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][66] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b010};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][65] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0] + 3'b001};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][64] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b010};
+				index_best = index_best + 1;
+			end
 		end
 		end
 		N2: begin
@@ -714,6 +1059,39 @@ case (temppid[3:0])
 				cursor_colour[index] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b010};
 				index = index + 1;
 			end
+			
+			if (Bmoves[counter][63] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0] - 3'b001};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][62] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b010};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][61] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b010, cursor[2:0] + 3'b001};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][60] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b010};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][59] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0] - 3'b001};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][58] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b010};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][57] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b010, cursor[2:0] + 3'b001};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][56] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b010};
+				index_best = index_best + 1;
+			end
 		end
 		end
 		B1: begin
@@ -734,6 +1112,26 @@ case (temppid[3:0])
 				cursor_colour[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0] + i[2:0]};
 				index = index+1;
 			end
+			
+			if (Bmoves[counter][55 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + Bmoves[counter][55 -: 3], cursor[2:0] - Bmoves[counter][55 -: 3]};
+				index_best = index_best + 1;
+			end
+			
+			if (Bmoves[counter][52 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + Bmoves[counter][52 -: 3], cursor[2:0] + Bmoves[counter][52 -: 3]};
+				index_best = index_best + 1;
+			end
+			
+			if (Bmoves[counter][49 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] - Bmoves[counter][49 -: 3], cursor[2:0] - Bmoves[counter][49 -: 3]};
+				index_best = index_best + 1;
+			end
+			
+			if (Bmoves[counter][46 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + Bmoves[counter][46 -: 3], cursor[2:0] + Bmoves[counter][46 -: 3]};
+				index_best = index_best + 1;
+			end
 		end
 		end
 		B2: begin
@@ -753,6 +1151,26 @@ case (temppid[3:0])
 			for (i=1; i<=ms_in[34 -: 3] ; i=i+1) begin
 				cursor_colour[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0] + i[2:0]};
 				index = index+1;
+			end
+			
+			if (Bmoves[counter][43 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + Bmoves[counter][43 -: 3], cursor[2:0] - Bmoves[counter][43 -: 3]};
+				index_best = index_best + 1;
+			end
+			
+			if (Bmoves[counter][40 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + Bmoves[counter][40 -: 3], cursor[2:0] + Bmoves[counter][40 -: 3]};
+				index_best = index_best + 1;
+			end
+			
+			if (Bmoves[counter][37 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] - Bmoves[counter][37 -: 3], cursor[2:0] - Bmoves[counter][37 -: 3]};
+				index_best = index_best + 1;
+			end
+			
+			if (Bmoves[counter][34 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + Bmoves[counter][34 -: 3], cursor[2:0] + Bmoves[counter][34 -: 3]};
+				index_best = index_best + 1;
 			end
 		end
 		end
@@ -790,6 +1208,46 @@ case (temppid[3:0])
 				cursor_colour[index] = {1'b1, cursor[5:3] - i[2:0], cursor[2:0] + i[2:0]};
 				index = index+1;
 			end
+			
+			if (Bmoves[counter][31 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3], cursor[2:0] - Bmoves[counter][31 -: 3]};
+				index_best = index_best + 1;
+			end
+			
+			if (Bmoves[counter][28 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3], cursor[2:0] + Bmoves[counter][28 -: 3]};
+				index_best = index_best + 1;
+			end
+			
+			if (Bmoves[counter][25 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + Bmoves[counter][25 -: 3], cursor[2:0]};
+				index_best = index_best + 1;
+			end
+			
+			if (Bmoves[counter][22 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] - Bmoves[counter][22 -: 3], cursor[2:0]};
+				index_best = index_best + 1;
+			end
+			
+			if (Bmoves[counter][19 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + Bmoves[counter][19 -: 3], cursor[2:0] - Bmoves[counter][19 -: 3]};
+				index_best = index_best + 1;
+			end
+			
+			if (Bmoves[counter][16 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + Bmoves[counter][16 -: 3], cursor[2:0] + Bmoves[counter][16 -: 3]};
+				index_best = index_best + 1;
+			end
+			
+			if (Bmoves[counter][13 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] - Bmoves[counter][13 -: 3], cursor[2:0] - Bmoves[counter][13 -: 3]};
+				index_best = index_best + 1;
+			end
+			
+			if (Bmoves[counter][10 -: 3] != 3'b000) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] - Bmoves[counter][10 -: 3], cursor[2:0] + Bmoves[counter][10 -: 3]};
+				index_best = index_best + 1;
+			end
 		end
 		end
 		K1: begin
@@ -826,10 +1284,48 @@ case (temppid[3:0])
 				cursor_colour[index] = {1'b1, cursor[5:3], cursor[2:0] - 3'b001};
 				index = index + 1;
 			end
+			
+			if (Bmoves[counter][7] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] - 3'b001};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][6] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0]};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][5] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] + 3'b001, cursor[2:0] + 3'b001};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][4] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3], cursor[2:0] + 3'b001};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][3] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] + 3'b001};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][2] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0]};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][1] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3] - 3'b001, cursor[2:0] - 3'b001};
+				index_best = index_best + 1;
+			end
+			if (Bmoves[counter][0] == 1'b1) begin
+				cursor_best[index_best] = {1'b1, cursor[5:3], cursor[2:0] - 3'b001};
+				index_best = index_best + 1;
+			end
 		end
 		end
-	endcase
+		endcase
 	end
+	
+	if (previousPlayer != player) begin
+		counter = counter + 1;
+	end
+	previousPlayer <= player;
 end
 
 //Send 
@@ -856,8 +1352,6 @@ always @(posedge enter_pressed) begin
 	|| (temppid[3:0] != B1)  || (temppid[3:0] != B2)) begin
 		temp_init_begin = 1'b0;
 	end
-	
-	//decode move set
 end
 
 always @(posedge clk12) begin
@@ -872,24 +1366,7 @@ always @(posedge clk12) begin
 		else begin	
 			cBGR = 24'h00_00_00;
 		end
-		
-		// Checking PID
-//		for(i = 95; i > 0; i = i-6) begin
-//			if (alive_vectors_w[i/6]) begin
-//				if(location_vectors_w[i -: 6] == cursor && (enter_pressed && confirm_pressed == 1'b0)) begin
-//					temppid = WHITE[i -: 6];
-//				end
-//			end
-//			if (alive_vectors_b[i/6]) begin
-//				if(location_vectors_b[i -: 6] == cursor && (enter_pressed && confirm_pressed == 1'b0)) begin
-//					temppid = BLACK[i -: 6];
-//				end
-//			end
-//		end
-//		pid = temppid[3:0];
-		
-		
-//
+				
 		if ((vCount <= 4 || vCount >= (vImage_Area - 4)) && (hCount > 104 && hCount < 376)) begin
 			cBGR = 24'h00_FE_00; //Green border;
 		end
@@ -915,6 +1392,13 @@ always @(posedge clk12) begin
 								if ((vCount >= (7 - cursor_colour[i][5 -:3])*pxWidth + 4) && (vCount < (8 - cursor_colour[i][5 -:3])*pxWidth + 4)
 								&& (hCount >= (cursor_colour[i][(5 - 3) -: 3]*pxWidth + 108)) && (hCount < ((cursor_colour[i][(5 - 3) -: 3] + 1)*pxWidth + 108))) begin
 									cBGR = 24'hFF_80_00;
+								end
+								
+							end
+							if ((cursor_best[i] & 7'b1000000) == 7'b1000000) begin //means the loc should be coloured
+								if ((vCount >= (7 - cursor_best[i][5 -:3])*pxWidth + 4) && (vCount < (8 - cursor_best[i][5 -:3])*pxWidth + 4)
+								&& (hCount >= (cursor_best[i][(5 - 3) -: 3]*pxWidth + 108)) && (hCount < ((cursor_best[i][(5 - 3) -: 3] + 1)*pxWidth + 108))) begin
+									cBGR = 24'h80_00_80;
 								end
 								
 							end
