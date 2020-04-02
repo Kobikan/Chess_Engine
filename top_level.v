@@ -105,30 +105,7 @@ module top_level(clk50, PS2_CLK, PS2_DAT, dbg_sw1, seg0, seg1, seg2, seg3, LEDR,
 		.lcd_clk_refclk_clk  (clk50),  //  lcd_clk_refclk.clk
 		.lcd_clk_reset_reset (dbg_sw1)  //   lcd_clk_reset.reset
 	);
-//	
-//	AI_Engine engine (
-//		.clk(clk50), 
-//		.pl(player), 
-//		.en(enable_engine),
-//		.RST(~dbg_sw1),
-//		.location_vectors_w(loc_vec_w),
-//		.location_vectors_b(loc_vec_b), 
-//		.alive_vectors_w(alive_vec_w),
-//		.alive_vectors_b(alive_vec_b),
-//		.piece_to_move(decision_piece_ID),
-//		.output_move(decision_loc), 
-//		.done(finish), 
-//		.move_vec_P(possible_move_P), 
-//		.move_vec_R(possible_move_R), 
-//		.move_vec_N(possible_move_N), 
-//		.move_vec_B(possible_move_B), 
-//		.move_vec_Q(possible_move_Q), 
-//		.move_vec_K(possible_move_K), 
-//		.pieceId(piece_ID), 
-//		.ready(pos_ready),
-//		.end_moves(done_checking)
-//	);
-	
+//		
 	board_update_v board_upd(
 		.clk(clk50),
 		.RST(dbg_sw1),
